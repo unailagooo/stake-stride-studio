@@ -20,10 +20,10 @@ export default function BetsScreen() {
     const r = b.type === "combined" ? getCombinedResult(b) : b.resultado;
     return r !== "Pendiente" && r !== "Nula";
   });
-  const totalStake = resolved.reduce((s, b) => s + b.stake, 0);
+  const totalStake = resolved.reduce((s, b) => s + (b.stake || 0), 0);
   const totalBenefit = stakeBets.reduce((s, b) => s + calcBenefit(b), 0);
   const avgCuota = stakeBets.length > 0
-    ? stakeBets.reduce((s, b) => s + (b.type === "combined" ? getCombinedCuota(b) : b.cuota), 0) / stakeBets.length
+    ? stakeBets.reduce((s, b) => s + (b.type === "combined" ? getCombinedCuota(b) : (b.cuota || 0)), 0) / stakeBets.length
     : 0;
   const roi = totalStake > 0 ? (totalBenefit / totalStake) * 100 : 0;
   const wins = stakeBets.filter(b => (b.type === "combined" ? getCombinedResult(b) : b.resultado) === "Ganada").length;
@@ -44,10 +44,10 @@ export default function BetsScreen() {
         <div className="ios-card p-4">
           <p className="text-xs text-muted-foreground font-medium mb-3">Métricas Generales</p>
           <div className="grid grid-cols-2 gap-3">
-            <MetricItem icon={TrendingUp} label="Beneficio" value={`${totalBenefit >= 0 ? '+' : ''}${totalBenefit.toFixed(2)}€`} positive={totalBenefit >= 0} />
-            <MetricItem icon={Percent} label="ROI" value={`${roi.toFixed(1)}%`} positive={roi >= 0} />
-            <MetricItem icon={BarChart3} label="Cuota Media" value={avgCuota.toFixed(2)} />
-            <MetricItem icon={Target} label="Win Rate" value={`${winRate.toFixed(0)}%`} />
+            <MetricItem icon={TrendingUp} label="Beneficio" value={`${(totalBenefit || 0) >= 0 ? '+' : ''}${(totalBenefit || 0).toFixed(2)}€`} positive={(totalBenefit || 0) >= 0} />
+            <MetricItem icon={Percent} label="ROI" value={`${(roi || 0).toFixed(1)}%`} positive={(roi || 0) >= 0} />
+            <MetricItem icon={BarChart3} label="Cuota Media" value={(avgCuota || 0).toFixed(2)} />
+            <MetricItem icon={Target} label="Win Rate" value={`${(winRate || 0).toFixed(0)}%`} />
           </div>
         </div>
       </div>
