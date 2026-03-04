@@ -51,27 +51,30 @@ export interface Goal {
 
 // For combined bets, cuota = product of all leg cuotas
 export function getCombinedCuota(bet: Bet): number {
-  if (bet.type === "simple") return bet.cuota;
-  if (!bet.legs || bet.legs.length === 0) return bet.cuota;
-  return bet.legs.reduce((acc, leg) => acc * leg.cuota, 1);
+  if (bet.type === "simple") return bet.cuota || 0;
+  if (!bet?.legs || bet.legs.length === 0) return bet.cuota || 0;
+  return bet.legs.reduce((acc, leg) => acc * (leg.cuota || 0), 1);
 }
 
 // Result for combined: all won=Ganada, any lost=Perdida, else Pendiente/Nula
 export function getCombinedResult(bet: Bet): BetResult {
-  if (bet.type === "simple") return bet.resultado;
-  if (!bet.legs || bet.legs.length === 0) return bet.resultado;
-  if (bet.legs.some(l => l.resultado === "Perdida")) return "Perdida";
-  if (bet.legs.every(l => l.resultado === "Ganada")) return "Ganada";
-  if (bet.legs.every(l => l.resultado === "Nula")) return "Nula";
+  if (bet.type === "simple") return bet.resultado || "Pendiente";
+  if (!bet?.legs || bet.legs.length === 0) return bet.resultado || "Pendiente";
+  if (bet.legs.some(l => l && l.resultado === "Perdida")) return "Perdida";
+  if (bet.legs.every(l => l && l.resultado === "Ganada")) return "Ganada";
+  if (bet.legs.every(l => l && l.resultado === "Nula")) return "Nula";
   return "Pendiente";
 }
 
 export function calcBenefit(bet: Bet): number {
+  if (!bet) return 0;
   const resultado = bet.type === "combined" ? getCombinedResult(bet) : bet.resultado;
   const cuota = bet.type === "combined" ? getCombinedCuota(bet) : bet.cuota;
+  const stake = bet.stake || 0;
+
   switch (resultado) {
-    case "Ganada": return (cuota * bet.stake) - bet.stake;
-    case "Perdida": return -bet.stake;
+    case "Ganada": return (cuota * stake) - stake;
+    case "Perdida": return -stake;
     default: return 0;
   }
 }

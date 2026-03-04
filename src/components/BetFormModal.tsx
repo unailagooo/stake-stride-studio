@@ -58,8 +58,8 @@ export function BetFormModal({ bet, folderId, betType, hasStake, onClose, onDele
         fecha,
         partido: partido.trim(),
         pronostico: pronostico.trim(),
-        cuota: parseFloat(cuota),
-        stake: hasStake ? parseFloat(stake || "0") : 0,
+        cuota: parseFloat(cuota) || 0,
+        stake: hasStake ? parseFloat(stake || "0") || 0 : 0,
         resultado,
       };
       isEdit ? updateBet(data) : addBet(data);
@@ -75,7 +75,7 @@ export function BetFormModal({ bet, folderId, betType, hasStake, onClose, onDele
         partido: validLegs.map(l => l.partido).join(" + "),
         pronostico: validLegs.map(l => l.pronostico).join(" | "),
         cuota: combinedCuota,
-        stake: hasStake ? parseFloat(stake || "0") : 0,
+        stake: hasStake ? parseFloat(stake || "0") || 0 : 0,
         resultado: "Pendiente",
         legs: validLegs,
       };
@@ -86,7 +86,7 @@ export function BetFormModal({ bet, folderId, betType, hasStake, onClose, onDele
 
   return (
     <div className="fixed inset-0 z-50 flex items-end justify-center bg-foreground/30 animate-fade-in" onClick={onClose}>
-      <div className="bg-card w-full max-w-lg rounded-t-2xl p-5 pb-8 animate-slide-up safe-bottom max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
+      <div className="bg-card w-full max-w-lg rounded-t-2xl p-5 pb-12 animate-slide-up safe-bottom max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
         <div className="flex items-center justify-between mb-4">
           <h2 className="text-lg font-bold text-foreground">
             {isEdit ? "Editar" : "Nueva"} {type === "combined" ? "Combinada" : "Apuesta"}
@@ -162,13 +162,12 @@ export function BetFormModal({ bet, folderId, betType, hasStake, onClose, onDele
                       <div className="grid grid-cols-4 gap-1">
                         {RESULTS.map(r => (
                           <button key={r} onClick={() => updateLeg(leg.id, "resultado", r)}
-                            className={`py-1.5 rounded text-[10px] font-medium transition-colors ${
-                              leg.resultado === r
-                                ? r === "Ganada" ? "bg-success text-success-foreground"
-                                  : r === "Perdida" ? "bg-destructive text-destructive-foreground"
+                            className={`py-1.5 rounded text-[10px] font-medium transition-colors ${leg.resultado === r
+                              ? r === "Ganada" ? "bg-success text-success-foreground"
+                                : r === "Perdida" ? "bg-destructive text-destructive-foreground"
                                   : "bg-primary text-primary-foreground"
-                                : "bg-muted text-muted-foreground"
-                            }`}>
+                              : "bg-muted text-muted-foreground"
+                              }`}>
                             {r}
                           </button>
                         ))}
@@ -211,13 +210,12 @@ export function BetFormModal({ bet, folderId, betType, hasStake, onClose, onDele
               <div className="grid grid-cols-4 gap-2">
                 {RESULTS.map(r => (
                   <button key={r} onClick={() => setResultado(r)}
-                    className={`py-2 rounded-lg text-xs font-medium transition-colors ${
-                      resultado === r
-                        ? r === "Ganada" ? "bg-success text-success-foreground"
-                          : r === "Perdida" ? "bg-destructive text-destructive-foreground"
+                    className={`py-2 rounded-lg text-xs font-medium transition-colors ${resultado === r
+                      ? r === "Ganada" ? "bg-success text-success-foreground"
+                        : r === "Perdida" ? "bg-destructive text-destructive-foreground"
                           : "bg-primary text-primary-foreground"
-                        : "bg-background border border-border text-muted-foreground"
-                    }`}>
+                      : "bg-background border border-border text-muted-foreground"
+                      }`}>
                     {r}
                   </button>
                 ))}

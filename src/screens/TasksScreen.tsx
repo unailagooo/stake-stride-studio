@@ -98,7 +98,7 @@ export default function TasksScreen() {
       {/* Quick add form */}
       {showForm && (
         <div className="fixed inset-0 z-50 flex items-end justify-center bg-foreground/30 animate-fade-in" onClick={() => setShowForm(false)}>
-          <div className="bg-card w-full max-w-lg rounded-t-2xl p-5 pb-8 animate-slide-up safe-bottom" onClick={e => e.stopPropagation()}>
+          <div className="bg-card w-full max-w-lg rounded-t-2xl p-5 pb-12 animate-slide-up safe-bottom" onClick={e => e.stopPropagation()}>
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-lg font-bold text-foreground">Nueva Tarea</h2>
               <button onClick={() => setShowForm(false)} className="w-8 h-8 rounded-full bg-muted flex items-center justify-center">
@@ -118,9 +118,8 @@ export default function TasksScreen() {
                 <div className="flex gap-2">
                   {(["Alta", "Media", "Baja"] as TaskPriority[]).map(p => (
                     <button key={p} onClick={() => setPrioridad(p)}
-                      className={`flex-1 py-2 rounded-lg text-xs font-medium transition-colors ${
-                        prioridad === p ? "bg-primary text-primary-foreground" : "bg-background border border-border text-muted-foreground"
-                      }`}>
+                      className={`flex-1 py-2 rounded-lg text-xs font-medium transition-colors ${prioridad === p ? "bg-primary text-primary-foreground" : "bg-background border border-border text-muted-foreground"
+                        }`}>
                       {p}
                     </button>
                   ))}

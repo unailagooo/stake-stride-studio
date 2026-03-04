@@ -94,10 +94,9 @@ export default function BetsFolderScreen({ folder, onBack }: Props) {
             <div key={bet.id}
               className="ios-card p-3 flex items-center gap-3 active:scale-[0.98] transition-transform cursor-pointer"
               onClick={() => { setEditBet(bet); setBetType(bet.type); setShowForm(true); }}>
-              <div className={`w-2 h-10 rounded-full flex-shrink-0 ${
-                resultado === "Ganada" ? "bg-success" :
-                resultado === "Perdida" ? "bg-destructive" : "bg-pending"
-              }`} />
+              <div className={`w-2 h-10 rounded-full flex-shrink-0 ${resultado === "Ganada" ? "bg-success" :
+                  resultado === "Perdida" ? "bg-destructive" : "bg-pending"
+                }`} />
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-1.5">
                   {bet.type === "combined" && (
@@ -116,13 +115,13 @@ export default function BetsFolderScreen({ folder, onBack }: Props) {
                 </p>
               </div>
               <div className="text-right flex-shrink-0">
-                <p className="text-sm font-bold text-foreground">@{cuota.toFixed(2)}</p>
+                <p className="text-sm font-bold text-foreground">@{(cuota || 0).toFixed(2)}</p>
                 <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${resultBg(resultado)}`}>
                   {resultado}
                 </span>
                 {folder.hasStake && (resultado === "Ganada" || resultado === "Perdida") && (
-                  <p className={`text-xs font-semibold mt-0.5 ${benefit >= 0 ? 'text-success' : 'text-destructive'}`}>
-                    {benefit >= 0 ? '+' : ''}{benefit.toFixed(2)}€
+                  <p className={`text-xs font-semibold mt-0.5 ${(benefit || 0) >= 0 ? 'text-success' : 'text-destructive'}`}>
+                    {(benefit || 0) >= 0 ? '+' : ''}{(benefit || 0).toFixed(2)}€
                   </p>
                 )}
               </div>

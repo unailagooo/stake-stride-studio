@@ -28,7 +28,7 @@ function AppShell() {
       </div>
 
       {/* Tab Bar */}
-      <nav className="fixed bottom-0 left-0 right-0 bg-card/95 backdrop-blur-lg border-t border-border safe-bottom z-50">
+      <nav className="fixed bottom-0 left-0 right-0 bg-card/95 backdrop-blur-lg border-t border-border safe-bottom z-40">
         <div className="max-w-lg mx-auto flex">
           {TABS.map(t => {
             const Icon = t.icon;
