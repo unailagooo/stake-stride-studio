@@ -1,205 +1,155 @@
 import { useState } from "react";
 import { useApp } from "@/context/AppContext";
-import { Bet, BetCategory, BetResult, calcBenefit } from "@/types/models";
-import { Plus, X, TrendingUp, Target, BarChart3, Percent } from "lucide-react";
-import { BetFormModal } from "@/components/BetFormModal";
-
-const FILTERS = ["Todas", "Pendientes", "Canal Telegram", "Personales", "Observación"] as const;
-
-function resultColor(r: BetResult) {
-  switch (r) {
-    case "Ganada": return "text-success";
-    case "Perdida": return "text-destructive";
-    default: return "text-pending";
-  }
-}
-
-function resultBg(r: BetResult) {
-  switch (r) {
-    case "Ganada": return "bg-success/10 text-success";
-    case "Perdida": return "bg-destructive/10 text-destructive";
-    default: return "bg-muted text-muted-foreground";
-  }
-}
+import { BetFolder, calcBenefit, getCombinedCuota, getCombinedResult } from "@/types/models";
+import { Plus, Folder, Trash2, TrendingUp, Target, BarChart3, Percent, ChevronRight, X, ToggleLeft, ToggleRight } from "lucide-react";
+import BetsFolderScreen from "@/screens/BetsFolderScreen";
 
 export default function BetsScreen() {
-  const { bets, deleteBet } = useApp();
-  const [filter, setFilter] = useState<string>("Todas");
-  const [showForm, setShowForm] = useState(false);
-  const [editBet, setEditBet] = useState<Bet | null>(null);
+  const { bets, folders, addFolder, deleteFolder } = useApp();
+  const [openFolder, setOpenFolder] = useState<BetFolder | null>(null);
+  const [showNewFolder, setShowNewFolder] = useState(false);
 
-  const filtered = bets.filter(b => {
-    if (filter === "Todas") return true;
-    if (filter === "Pendientes") return b.resultado === "Pendiente";
-    if (filter === "Canal Telegram") return b.categoria === "Canal Telegram";
-    if (filter === "Personales") return b.categoria === "Personal";
-    if (filter === "Observación") return b.categoria === "En Observación";
-    return true;
+  if (openFolder) {
+    return <BetsFolderScreen folder={openFolder} onBack={() => setOpenFolder(null)} />;
+  }
+
+  // General metrics (all folders with stake)
+  const stakeFolderIds = folders.filter(f => f.hasStake).map(f => f.id);
+  const stakeBets = bets.filter(b => stakeFolderIds.includes(b.folderId));
+  const resolved = stakeBets.filter(b => {
+    const r = b.type === "combined" ? getCombinedResult(b) : b.resultado;
+    return r !== "Pendiente" && r !== "Nula";
   });
-
-  // Dashboard metrics by category
-  const categories: BetCategory[] = ["Canal Telegram", "Personal", "En Observación"];
-  
-  const getMetrics = (catBets: Bet[]) => {
-    const resolved = catBets.filter(b => b.resultado !== "Pendiente" && b.resultado !== "Nula");
-    const totalStake = resolved.reduce((s, b) => s + b.stake, 0);
-    const totalBenefit = catBets.reduce((s, b) => s + calcBenefit(b), 0);
-    const avgCuota = catBets.length > 0 ? catBets.reduce((s, b) => s + b.cuota, 0) / catBets.length : 0;
-    const roi = totalStake > 0 ? (totalBenefit / totalStake) * 100 : 0;
-    const wins = catBets.filter(b => b.resultado === "Ganada").length;
-    const losses = catBets.filter(b => b.resultado === "Perdida").length;
-    const winRate = (wins + losses) > 0 ? (wins / (wins + losses)) * 100 : 0;
-    return { totalBenefit, avgCuota, roi, winRate, total: catBets.length };
-  };
-
-  const allMetrics = getMetrics(bets);
+  const totalStake = resolved.reduce((s, b) => s + b.stake, 0);
+  const totalBenefit = stakeBets.reduce((s, b) => s + calcBenefit(b), 0);
+  const avgCuota = stakeBets.length > 0
+    ? stakeBets.reduce((s, b) => s + (b.type === "combined" ? getCombinedCuota(b) : b.cuota), 0) / stakeBets.length
+    : 0;
+  const roi = totalStake > 0 ? (totalBenefit / totalStake) * 100 : 0;
+  const wins = stakeBets.filter(b => (b.type === "combined" ? getCombinedResult(b) : b.resultado) === "Ganada").length;
+  const losses = stakeBets.filter(b => (b.type === "combined" ? getCombinedResult(b) : b.resultado) === "Perdida").length;
+  const winRate = (wins + losses) > 0 ? (wins / (wins + losses)) * 100 : 0;
 
   return (
     <div className="pb-4">
-      <div className="px-4 pt-2 pb-3">
+      <div className="px-4 pt-2 pb-3 flex items-center justify-between">
         <h1 className="text-2xl font-bold text-foreground">Apuestas</h1>
+        <button onClick={() => setShowNewFolder(true)} className="w-8 h-8 rounded-full bg-primary flex items-center justify-center">
+          <Plus className="w-4 h-4 text-primary-foreground" />
+        </button>
       </div>
 
-      {/* Dashboard */}
+      {/* General Dashboard */}
       <div className="px-4 mb-4">
-        <div className="ios-card p-4 space-y-3">
+        <div className="ios-card p-4">
+          <p className="text-xs text-muted-foreground font-medium mb-3">Métricas Generales</p>
           <div className="grid grid-cols-2 gap-3">
-            <div className="flex items-center gap-2">
-              <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center">
-                <TrendingUp className="w-4 h-4 text-primary" />
-              </div>
-              <div>
-                <p className="text-[10px] text-muted-foreground uppercase tracking-wide">Beneficio</p>
-                <p className={`text-base font-bold ${allMetrics.totalBenefit >= 0 ? 'text-success' : 'text-destructive'}`}>
-                  {allMetrics.totalBenefit >= 0 ? '+' : ''}{allMetrics.totalBenefit.toFixed(2)}€
-                </p>
-              </div>
-            </div>
-            <div className="flex items-center gap-2">
-              <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center">
-                <Percent className="w-4 h-4 text-primary" />
-              </div>
-              <div>
-                <p className="text-[10px] text-muted-foreground uppercase tracking-wide">ROI</p>
-                <p className={`text-base font-bold ${allMetrics.roi >= 0 ? 'text-success' : 'text-destructive'}`}>
-                  {allMetrics.roi.toFixed(1)}%
-                </p>
-              </div>
-            </div>
-            <div className="flex items-center gap-2">
-              <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center">
-                <BarChart3 className="w-4 h-4 text-primary" />
-              </div>
-              <div>
-                <p className="text-[10px] text-muted-foreground uppercase tracking-wide">Cuota Media</p>
-                <p className="text-base font-bold text-foreground">{allMetrics.avgCuota.toFixed(2)}</p>
-              </div>
-            </div>
-            <div className="flex items-center gap-2">
-              <div className="w-8 h-8 rounded-lg bg-success/10 flex items-center justify-center">
-                <Target className="w-4 h-4 text-success" />
-              </div>
-              <div>
-                <p className="text-[10px] text-muted-foreground uppercase tracking-wide">Win Rate</p>
-                <p className="text-base font-bold text-foreground">{allMetrics.winRate.toFixed(0)}%</p>
-              </div>
-            </div>
-          </div>
-
-          {/* Per-category mini stats */}
-          <div className="border-t border-border pt-3 space-y-2">
-            {categories.map(cat => {
-              const m = getMetrics(bets.filter(b => b.categoria === cat));
-              if (m.total === 0) return null;
-              return (
-                <div key={cat} className="flex items-center justify-between text-xs">
-                  <span className="text-muted-foreground">{cat}</span>
-                  <div className="flex gap-3">
-                    <span className={m.totalBenefit >= 0 ? 'text-success font-medium' : 'text-destructive font-medium'}>
-                      {m.totalBenefit >= 0 ? '+' : ''}{m.totalBenefit.toFixed(2)}€
-                    </span>
-                    <span className="text-muted-foreground">ROI {m.roi.toFixed(1)}%</span>
-                  </div>
-                </div>
-              );
-            })}
+            <MetricItem icon={TrendingUp} label="Beneficio" value={`${totalBenefit >= 0 ? '+' : ''}${totalBenefit.toFixed(2)}€`} positive={totalBenefit >= 0} />
+            <MetricItem icon={Percent} label="ROI" value={`${roi.toFixed(1)}%`} positive={roi >= 0} />
+            <MetricItem icon={BarChart3} label="Cuota Media" value={avgCuota.toFixed(2)} />
+            <MetricItem icon={Target} label="Win Rate" value={`${winRate.toFixed(0)}%`} />
           </div>
         </div>
       </div>
 
-      {/* Filters */}
-      <div className="px-4 mb-3 overflow-x-auto">
-        <div className="flex gap-2 min-w-max">
-          {FILTERS.map(f => (
-            <button
-              key={f}
-              onClick={() => setFilter(f)}
-              className={`px-3 py-1.5 rounded-full text-xs font-medium transition-colors ${
-                filter === f
-                  ? "bg-primary text-primary-foreground"
-                  : "bg-card text-muted-foreground ios-card"
-              }`}
-            >
-              {f}
-            </button>
-          ))}
-        </div>
-      </div>
-
-      {/* Bet list */}
+      {/* Folders */}
       <div className="px-4 space-y-2">
-        {filtered.length === 0 && (
+        {folders.map(folder => {
+          const folderBets = bets.filter(b => b.folderId === folder.id);
+          const folderBenefit = folderBets.reduce((s, b) => s + calcBenefit(b), 0);
+          const pending = folderBets.filter(b => (b.type === "combined" ? getCombinedResult(b) : b.resultado) === "Pendiente").length;
+
+          return (
+            <button key={folder.id} onClick={() => setOpenFolder(folder)}
+              className="ios-card p-4 w-full text-left flex items-center gap-3 active:scale-[0.98] transition-transform">
+              <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${folder.hasStake ? 'bg-primary/10' : 'bg-muted'}`}>
+                <Folder className={`w-5 h-5 ${folder.hasStake ? 'text-primary' : 'text-muted-foreground'}`} />
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-semibold text-foreground">{folder.name}</p>
+                <p className="text-xs text-muted-foreground">
+                  {folderBets.length} apuestas{pending > 0 ? ` · ${pending} pendientes` : ''}
+                  {!folder.hasStake && ' · Sin stake'}
+                </p>
+              </div>
+              <div className="flex items-center gap-2">
+                {folder.hasStake && folderBets.length > 0 && (
+                  <span className={`text-xs font-semibold ${folderBenefit >= 0 ? 'text-success' : 'text-destructive'}`}>
+                    {folderBenefit >= 0 ? '+' : ''}{folderBenefit.toFixed(2)}€
+                  </span>
+                )}
+                <ChevronRight className="w-4 h-4 text-muted-foreground" />
+              </div>
+            </button>
+          );
+        })}
+
+        {folders.length === 0 && (
           <div className="ios-card p-8 text-center">
-            <p className="text-muted-foreground text-sm">No hay apuestas</p>
+            <p className="text-muted-foreground text-sm">No hay carpetas. Crea una para empezar.</p>
           </div>
         )}
-        {filtered.map(bet => (
-          <div
-            key={bet.id}
-            className="ios-card p-3 flex items-center gap-3 active:scale-[0.98] transition-transform cursor-pointer"
-            onClick={() => { setEditBet(bet); setShowForm(true); }}
-          >
-            <div className={`w-2 h-10 rounded-full flex-shrink-0 ${
-              bet.resultado === "Ganada" ? "bg-success" :
-              bet.resultado === "Perdida" ? "bg-destructive" : "bg-pending"
-            }`} />
-            <div className="flex-1 min-w-0">
-              <p className="text-sm font-semibold text-foreground truncate">{bet.partido}</p>
-              <p className="text-xs text-muted-foreground">{bet.pronostico}</p>
-              <p className="text-[10px] text-muted-foreground mt-0.5">
-                {new Date(bet.fecha).toLocaleDateString("es-ES", { day: "numeric", month: "short" })} · {bet.categoria}
-              </p>
-            </div>
-            <div className="text-right flex-shrink-0">
-              <p className="text-sm font-bold text-foreground">@{bet.cuota.toFixed(2)}</p>
-              <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${resultBg(bet.resultado)}`}>
-                {bet.resultado}
-              </span>
-              {(bet.resultado === "Ganada" || bet.resultado === "Perdida") && (
-                <p className={`text-xs font-semibold mt-0.5 ${calcBenefit(bet) >= 0 ? 'text-success' : 'text-destructive'}`}>
-                  {calcBenefit(bet) >= 0 ? '+' : ''}{calcBenefit(bet).toFixed(2)}€
-                </p>
-              )}
-            </div>
-          </div>
-        ))}
       </div>
 
-      {/* FAB */}
-      <button
-        onClick={() => { setEditBet(null); setShowForm(true); }}
-        className="fixed bottom-20 right-4 w-14 h-14 rounded-full bg-primary text-primary-foreground shadow-lg flex items-center justify-center active:scale-95 transition-transform z-40"
-      >
-        <Plus className="w-6 h-6" />
-      </button>
+      {showNewFolder && <NewFolderModal onClose={() => setShowNewFolder(false)} />}
+    </div>
+  );
+}
 
-      {showForm && (
-        <BetFormModal
-          bet={editBet}
-          onClose={() => { setShowForm(false); setEditBet(null); }}
-          onDelete={editBet ? () => { deleteBet(editBet.id); setShowForm(false); setEditBet(null); } : undefined}
-        />
-      )}
+function MetricItem({ icon: Icon, label, value, positive }: { icon: any; label: string; value: string; positive?: boolean }) {
+  return (
+    <div className="flex items-center gap-2">
+      <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center">
+        <Icon className="w-4 h-4 text-primary" />
+      </div>
+      <div>
+        <p className="text-[10px] text-muted-foreground uppercase tracking-wide">{label}</p>
+        <p className={`text-base font-bold ${positive === undefined ? 'text-foreground' : positive ? 'text-success' : 'text-destructive'}`}>
+          {value}
+        </p>
+      </div>
+    </div>
+  );
+}
+
+function NewFolderModal({ onClose }: { onClose: () => void }) {
+  const { addFolder } = useApp();
+  const [name, setName] = useState("");
+  const [hasStake, setHasStake] = useState(true);
+
+  const save = () => {
+    if (!name.trim()) return;
+    addFolder({ id: crypto.randomUUID(), name: name.trim(), hasStake });
+    onClose();
+  };
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-end justify-center bg-foreground/30 animate-fade-in" onClick={onClose}>
+      <div className="bg-card w-full max-w-lg rounded-t-2xl p-5 pb-8 animate-slide-up safe-bottom" onClick={e => e.stopPropagation()}>
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="text-lg font-bold text-foreground">Nueva Carpeta</h2>
+          <button onClick={onClose} className="w-8 h-8 rounded-full bg-muted flex items-center justify-center">
+            <X className="w-4 h-4 text-muted-foreground" />
+          </button>
+        </div>
+        <div className="space-y-3">
+          <input value={name} onChange={e => setName(e.target.value)} placeholder="Nombre de la carpeta"
+            className="w-full px-3 py-2.5 rounded-lg bg-background border border-border text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring" autoFocus />
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm font-medium text-foreground">Controlar stake</p>
+              <p className="text-xs text-muted-foreground">Desactiva para carpetas como "Descartadas"</p>
+            </div>
+            <button onClick={() => setHasStake(!hasStake)} className="text-primary">
+              {hasStake ? <ToggleRight className="w-8 h-8" /> : <ToggleLeft className="w-8 h-8 text-muted-foreground" />}
+            </button>
+          </div>
+          <button onClick={save}
+            className="w-full py-3 rounded-xl bg-primary text-primary-foreground font-semibold text-sm active:scale-[0.98] transition-transform">
+            Crear Carpeta
+          </button>
+        </div>
+      </div>
     </div>
   );
 }
