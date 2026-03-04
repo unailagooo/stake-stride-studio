@@ -1,14 +1,56 @@
-// Update this page (the content is just a fallback if you fail to update the page)
+import { useState } from "react";
+import { BarChart3, CheckSquare, Calendar, Target } from "lucide-react";
+import BetsScreen from "@/screens/BetsScreen";
+import TasksScreen from "@/screens/TasksScreen";
+import CalendarScreen from "@/screens/CalendarScreen";
+import GoalsScreen from "@/screens/GoalsScreen";
+import { AppProvider } from "@/context/AppContext";
 
-const Index = () => {
+const TABS = [
+  { id: "bets", label: "Apuestas", icon: BarChart3 },
+  { id: "tasks", label: "Tareas", icon: CheckSquare },
+  { id: "calendar", label: "Calendario", icon: Calendar },
+  { id: "goals", label: "Objetivos", icon: Target },
+] as const;
+
+type TabId = typeof TABS[number]["id"];
+
+function AppShell() {
+  const [tab, setTab] = useState<TabId>("bets");
+
   return (
-    <div className="flex min-h-screen items-center justify-center bg-background">
-      <div className="text-center">
-        <h1 className="mb-4 text-4xl font-bold">Welcome to Your Blank App</h1>
-        <p className="text-xl text-muted-foreground">Start building your amazing project here!</p>
+    <div className="min-h-screen bg-background max-w-lg mx-auto relative">
+      <div className="pb-16 overflow-y-auto" style={{ minHeight: "100dvh" }}>
+        {tab === "bets" && <BetsScreen />}
+        {tab === "tasks" && <TasksScreen />}
+        {tab === "calendar" && <CalendarScreen />}
+        {tab === "goals" && <GoalsScreen />}
       </div>
+
+      {/* Tab Bar */}
+      <nav className="fixed bottom-0 left-0 right-0 bg-card/95 backdrop-blur-lg border-t border-border safe-bottom z-50">
+        <div className="max-w-lg mx-auto flex">
+          {TABS.map(t => {
+            const Icon = t.icon;
+            const active = tab === t.id;
+            return (
+              <button key={t.id} onClick={() => setTab(t.id)}
+                className="flex-1 flex flex-col items-center py-2 gap-0.5 transition-colors">
+                <Icon className={`w-5 h-5 ${active ? "text-primary" : "text-muted-foreground"}`} />
+                <span className={`text-[10px] font-medium ${active ? "text-primary" : "text-muted-foreground"}`}>{t.label}</span>
+              </button>
+            );
+          })}
+        </div>
+      </nav>
     </div>
   );
-};
+}
+
+const Index = () => (
+  <AppProvider>
+    <AppShell />
+  </AppProvider>
+);
 
 export default Index;
