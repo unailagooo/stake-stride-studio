@@ -1,7 +1,7 @@
 import { useState, useMemo } from "react";
 import { useApp } from "@/context/AppContext";
 import { ChevronLeft, ChevronRight } from "lucide-react";
-import { calcBenefit } from "@/types/models";
+import { getCombinedCuota } from "@/types/models";
 
 function getDaysInMonth(year: number, month: number) {
   return new Date(year, month + 1, 0).getDate();
@@ -118,7 +118,7 @@ export default function CalendarScreen() {
                 <p className="text-xs text-muted-foreground">🏟 Apuesta</p>
                 <p className="text-sm font-medium text-foreground truncate">{bet.partido}</p>
               </div>
-              <span className="text-xs font-medium text-muted-foreground">@{bet.cuota.toFixed(2)}</span>
+              <span className="text-xs font-medium text-muted-foreground">@{(bet.type === "combined" ? getCombinedCuota(bet) : bet.cuota).toFixed(2)}</span>
             </div>
           ))}
           {selectedTasks.map(task => (
