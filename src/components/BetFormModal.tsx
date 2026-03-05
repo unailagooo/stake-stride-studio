@@ -46,7 +46,17 @@ export function BetFormModal({ bet, folderId, betType, hasStake, onClose, onDele
   };
 
   const updateLeg = (id: string, field: keyof BetLeg, value: any) => {
-    setLegs(legs.map(l => l.id === id ? { ...l, [field]: value } : l));
+    const newLegs = legs.map(l => l.id === id ? { ...l, [field]: value } : l);
+    setLegs(newLegs);
+
+    // Auto-calculate combined cuota
+    if (type === "combined") {
+      const valid = newLegs.filter(l => l.cuota > 0);
+      if (valid.length > 0) {
+        const total = valid.reduce((acc, l) => acc * l.cuota, 1);
+        setCuota(total.toFixed(2));
+      }
+    }
   };
 
   const save = () => {
@@ -68,7 +78,6 @@ export function BetFormModal({ bet, folderId, betType, hasStake, onClose, onDele
     } else {
       const validLegs = legs.filter(l => l.partido.trim() && l.cuota > 0);
       if (validLegs.length < 2) return;
-      const combinedCuota = validLegs.reduce((acc, l) => acc * l.cuota, 1);
       const data: Bet = {
         id: bet?.id || crypto.randomUUID(),
         folderId,
@@ -77,7 +86,7 @@ export function BetFormModal({ bet, folderId, betType, hasStake, onClose, onDele
         hora: hora || undefined,
         partido: validLegs.map(l => l.partido).join(" + "),
         pronostico: validLegs.map(l => l.pronostico).join(" | "),
-        cuota: combinedCuota,
+        cuota: parseFloat(cuota) || 0,
         stake: hasStake ? parseFloat(stake || "0") || 0 : 0,
         resultado: "Pendiente",
         legs: validLegs,
@@ -210,12 +219,10 @@ export function BetFormModal({ bet, folderId, betType, hasStake, onClose, onDele
                       className="w-full px-3 py-2.5 rounded-lg bg-background border border-border text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring" />
                   </div>
                 )}
-                <div className="flex items-end pb-3">
-                  <div className="text-[10px] text-muted-foreground">
-                    Cuota combinada: <span className="font-bold text-foreground">
-                      @{legs.filter(l => l.cuota > 0).reduce((a, l) => a * l.cuota, 1).toFixed(2)}
-                    </span>
-                  </div>
+                <div>
+                  <label className="text-xs text-muted-foreground mb-1 block">Cuota Total *</label>
+                  <input type="number" step="0.01" value={cuota} onChange={e => setCuota(e.target.value)} placeholder="0.00"
+                    className="w-full px-3 py-2.5 rounded-lg bg-background border border-border text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring" />
                 </div>
               </div>
             </>
