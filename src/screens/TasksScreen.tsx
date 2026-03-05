@@ -93,7 +93,7 @@ export default function TasksScreen() {
   return (
     <div className="pb-4">
       <div className="px-4 pt-2 pb-3 flex items-center justify-between">
-        <h1 className="text-2xl font-bold text-foreground">Tareas</h1>
+        <h1 className="text-2xl font-bold text-foreground">Tareas (V2)</h1>
         <button onClick={() => setShowForm(true)} className="w-8 h-8 rounded-full bg-primary flex items-center justify-center">
           <Plus className="w-4 h-4 text-primary-foreground" />
         </button>
