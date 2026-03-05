@@ -125,6 +125,14 @@ export function BetFormModal({ bet, folderId, betType, hasStake, onClose, onDele
               </div>
               <div>
                 <label className="text-xs text-muted-foreground mb-1 block">Pronóstico</label>
+                <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar pb-2 mb-1">
+                  {["Gana Local", "Gana Visitante", "Empate", "Over 2.5", "Under 2.5", "Ammos Marcan", "Ambos No"].map(s => (
+                    <button key={s} onClick={() => setPronostico(s)}
+                      className="px-2.5 py-1.5 rounded-lg bg-muted text-foreground text-[10px] font-semibold whitespace-nowrap active:scale-95 transition-transform">
+                      {s}
+                    </button>
+                  ))}
+                </div>
                 <input value={pronostico} onChange={e => setPronostico(e.target.value)} placeholder="Ej: Over 2.5 goles"
                   className="w-full px-3 py-2.5 rounded-lg bg-background border border-border text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring" />
               </div>

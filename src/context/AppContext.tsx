@@ -18,6 +18,7 @@ interface AppState {
   addFolder: (folder: BetFolder) => void;
   deleteFolder: (id: string) => void;
   updateFolder: (folder: BetFolder) => void;
+  duplicateBets: (betIds: string[], targetFolderId: string) => void;
 }
 
 const AppContext = createContext<AppState | null>(null);
@@ -56,8 +57,21 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   }, []);
   const updateFolder = useCallback((f: BetFolder) => setFolders(p => p.map(x => x.id === f.id ? f : x)), []);
 
+  const duplicateBets = useCallback((ids: string[], targetId: string) => {
+    setBets(p => {
+      const toDuplicate = p.filter(b => ids.includes(b.id));
+      const newBets = toDuplicate.map(b => ({
+        ...b,
+        id: crypto.randomUUID(),
+        folderId: targetId,
+        fecha: new Date().toISOString().slice(0, 10), // Reset to today or keep old date? User said "duplicar", usually suggests new date but same bet. Let's keep data as is but new ID.
+      }));
+      return [...newBets, ...p];
+    });
+  }, []);
+
   return (
-    <AppContext.Provider value={{ bets, tasks, goals, folders, addBet, updateBet, deleteBet, addTask, updateTask, deleteTask, addGoal, updateGoal, deleteGoal, addFolder, deleteFolder, updateFolder }}>
+    <AppContext.Provider value={{ bets, tasks, goals, folders, addBet, updateBet, deleteBet, addTask, updateTask, deleteTask, addGoal, updateGoal, deleteGoal, addFolder, deleteFolder, updateFolder, duplicateBets }}>
       {children}
     </AppContext.Provider>
   );
