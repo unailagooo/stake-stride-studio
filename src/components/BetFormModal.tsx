@@ -119,24 +119,31 @@ export function BetFormModal({ bet, folderId, betType, hasStake, onClose, onDele
                 <input value={pronostico} onChange={e => setPronostico(e.target.value)} placeholder="Ej: Over 2.5 goles"
                   className="w-full px-3 py-2.5 rounded-lg bg-background border border-border text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring" />
               </div>
-              <div className="grid grid-cols-4 gap-2">
-                <div className="col-span-2">
-                  <label className="text-xs text-muted-foreground mb-1 block">Fecha</label>
-                  <input type="date" value={fecha} onChange={e => setFecha(e.target.value)}
-                    className="w-full px-2 py-2.5 rounded-lg bg-background border border-border text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring" />
-                </div>
+              <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="text-xs text-muted-foreground mb-1 block">Hora</label>
-                  <input type="time" value={hora} onChange={e => setHora(e.target.value)}
-                    className="w-full px-2 py-2.5 rounded-lg bg-background border border-border text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring" />
+                  <label className="text-xs text-muted-foreground mb-1 block">Cuota *</label>
+                  <input type="number" step="0.01" value={cuota} onChange={e => setCuota(e.target.value)} placeholder="1.85"
+                    className="w-full px-3 py-2.5 rounded-lg bg-background border border-border text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring" />
                 </div>
                 {hasStake && (
                   <div>
                     <label className="text-xs text-muted-foreground mb-1 block">Stake</label>
                     <input type="number" step="0.01" value={stake} onChange={e => setStake(e.target.value)} placeholder="10"
-                      className="w-full px-2 py-2.5 rounded-lg bg-background border border-border text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring" />
+                      className="w-full px-3 py-2.5 rounded-lg bg-background border border-border text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring" />
                   </div>
                 )}
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="text-xs text-muted-foreground mb-1 block">Fecha</label>
+                  <input type="date" value={fecha} onChange={e => setFecha(e.target.value)}
+                    className="w-full px-3 py-2.5 rounded-lg bg-background border border-border text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring" />
+                </div>
+                <div>
+                  <label className="text-xs text-muted-foreground mb-1 block">Hora</label>
+                  <input type="time" value={hora} onChange={e => setHora(e.target.value)}
+                    className="w-full px-3 py-2.5 rounded-lg bg-background border border-border text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring" />
+                </div>
               </div>
             </>
           ) : (
@@ -183,30 +190,33 @@ export function BetFormModal({ bet, folderId, betType, hasStake, onClose, onDele
                 </button>
               </div>
 
-              <div className="grid grid-cols-3 gap-2">
-                <div className="col-span-1">
+              <div className="grid grid-cols-2 gap-3">
+                <div>
                   <label className="text-xs text-muted-foreground mb-1 block">Fecha</label>
                   <input type="date" value={fecha} onChange={e => setFecha(e.target.value)}
-                    className="w-full px-2 py-2.5 rounded-lg bg-background border border-border text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring" />
+                    className="w-full px-3 py-2.5 rounded-lg bg-background border border-border text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring" />
                 </div>
                 <div>
                   <label className="text-xs text-muted-foreground mb-1 block">Hora</label>
                   <input type="time" value={hora} onChange={e => setHora(e.target.value)}
-                    className="w-full px-2 py-2.5 rounded-lg bg-background border border-border text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring" />
+                    className="w-full px-3 py-2.5 rounded-lg bg-background border border-border text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring" />
                 </div>
+              </div>
+              <div className="grid grid-cols-2 gap-3">
                 {hasStake && (
                   <div>
                     <label className="text-xs text-muted-foreground mb-1 block">Stake</label>
                     <input type="number" step="0.01" value={stake} onChange={e => setStake(e.target.value)} placeholder="10"
-                      className="w-full px-2 py-2.5 rounded-lg bg-background border border-border text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring" />
+                      className="w-full px-3 py-2.5 rounded-lg bg-background border border-border text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring" />
                   </div>
                 )}
-              </div>
-
-              <div className="text-xs text-muted-foreground">
-                Cuota combinada: <span className="font-bold text-foreground">
-                  @{legs.filter(l => l.cuota > 0).reduce((a, l) => a * l.cuota, 1).toFixed(2)}
-                </span>
+                <div className="flex items-end pb-3">
+                  <div className="text-[10px] text-muted-foreground">
+                    Cuota combinada: <span className="font-bold text-foreground">
+                      @{legs.filter(l => l.cuota > 0).reduce((a, l) => a * l.cuota, 1).toFixed(2)}
+                    </span>
+                  </div>
+                </div>
               </div>
             </>
           )}
