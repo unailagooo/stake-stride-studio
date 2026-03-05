@@ -34,12 +34,29 @@ export interface Bet {
   resultado: BetResult;
 }
 
+export type TaskRecurrence = "Ninguna" | "Diaria" | "Semanal" | "Mensual";
+
+export interface Subtask {
+  id: string;
+  texto: string;
+  completada: boolean;
+}
+
 export interface Task {
   id: string;
   tarea: string;
   estado: TaskStatus;
   prioridad: TaskPriority;
   fechaLimite: string;
+  recurrencia?: TaskRecurrence;
+  categoria?: string; // Icon or name
+  subtareas?: Subtask[];
+}
+
+export interface Milestone {
+  id: string;
+  texto: string;
+  completado: boolean;
 }
 
 export interface Goal {
@@ -48,6 +65,8 @@ export interface Goal {
   plazo: GoalTerm;
   motivacion: string;
   progreso: number;
+  fechaObjetivo?: string; // ISO date for countdown
+  hitos?: Milestone[];
 }
 
 // For combined bets, cuota = product of all leg cuotas

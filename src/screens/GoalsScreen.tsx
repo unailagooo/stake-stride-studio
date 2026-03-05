@@ -1,7 +1,8 @@
 import { useState } from "react";
 import { useApp } from "@/context/AppContext";
 import { Goal, GoalTerm } from "@/types/models";
-import { Plus, X, Trash2, Target } from "lucide-react";
+import { Plus, X, Trash2, Target, CheckCircle2, Circle, Clock } from "lucide-react";
+import { Milestone } from "@/types/models";
 
 const TERMS: GoalTerm[] = ["Corto", "Medio", "Largo"];
 const TERM_LABELS: Record<GoalTerm, string> = { Corto: "Corto Plazo", Medio: "Medio Plazo", Largo: "Largo Plazo" };
@@ -28,19 +29,40 @@ export default function GoalsScreen() {
             <div key={term}>
               <p className="text-xs text-muted-foreground font-medium mb-2">{TERM_LABELS[term]}</p>
               <div className="grid grid-cols-2 gap-2">
-                {termGoals.map(goal => (
-                  <button key={goal.id} onClick={() => setDetail(goal)}
-                    className="ios-card p-3 text-left active:scale-[0.97] transition-transform">
-                    <div className="flex items-center gap-2 mb-2">
-                      <Target className="w-4 h-4 text-primary" />
-                      <p className="text-sm font-semibold text-foreground truncate">{goal.objetivo}</p>
-                    </div>
-                    <div className="w-full h-2 bg-muted rounded-full overflow-hidden">
-                      <div className="h-full bg-primary rounded-full transition-all" style={{ width: `${goal.progreso}%` }} />
-                    </div>
-                    <p className="text-[10px] text-muted-foreground mt-1">{goal.progreso}%</p>
-                  </button>
-                ))}
+                {termGoals.map(goal => {
+                  const daysLeft = goal.fechaObjetivo
+                    ? Math.ceil((new Date(goal.fechaObjetivo).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24))
+                    : null;
+
+                  return (
+                    <button key={goal.id} onClick={() => setDetail(goal)}
+                      className="ios-card p-3 text-left active:scale-[0.97] transition-transform relative overflow-hidden">
+                      <div className="flex items-center justify-between mb-2">
+                        <div className="flex items-center gap-2 max-w-[70%]">
+                          <Target className="w-4 h-4 text-primary shrink-0" />
+                          <p className="text-sm font-semibold text-foreground truncate">{goal.objetivo}</p>
+                        </div>
+                        {daysLeft !== null && (
+                          <div className={`flex items-center gap-1 px-1.5 py-0.5 rounded-full text-[9px] font-bold ${daysLeft < 0 ? 'bg-destructive/10 text-destructive' : 'bg-primary/10 text-primary'}`}>
+                            <Clock className="w-2.5 h-2.5" />
+                            {daysLeft < 0 ? 'Expirado' : `${daysLeft}d`}
+                          </div>
+                        )}
+                      </div>
+                      <div className="w-full h-2 bg-muted rounded-full overflow-hidden">
+                        <div className="h-full bg-primary rounded-full transition-all" style={{ width: `${goal.progreso}%` }} />
+                      </div>
+                      <div className="flex justify-between items-center mt-1">
+                        <p className="text-[10px] text-muted-foreground">{goal.progreso}%</p>
+                        {goal.hitos && goal.hitos.length > 0 && (
+                          <p className="text-[9px] text-muted-foreground font-medium">
+                            {goal.hitos.filter(h => h.completado).length}/{goal.hitos.length} hitos
+                          </p>
+                        )}
+                      </div>
+                    </button>
+                  );
+                })}
               </div>
             </div>
           );
@@ -71,14 +93,47 @@ export default function GoalsScreen() {
             </div>
             <p className="text-xs text-muted-foreground mb-1">Motivación</p>
             <p className="text-sm text-foreground mb-4 leading-relaxed">{detail.motivacion || "Sin motivación definida."}</p>
-            <p className="text-xs text-muted-foreground mb-2">Progreso: {detail.progreso}%</p>
-            <input type="range" min={0} max={100} value={detail.progreso}
-              onChange={e => {
-                const updated = { ...detail, progreso: parseInt(e.target.value) };
-                updateGoal(updated);
-                setDetail(updated);
-              }}
-              className="w-full accent-primary" />
+
+            <div className="mb-4">
+              <div className="flex justify-between items-center mb-2">
+                <p className="text-xs text-muted-foreground">Progreso manual: {detail.progreso}%</p>
+                {detail.fechaObjetivo && (
+                  <p className="text-[10px] text-primary font-bold">Fecha: {new Date(detail.fechaObjetivo).toLocaleDateString()}</p>
+                )}
+              </div>
+              <input type="range" min={0} max={100} value={detail.progreso}
+                onChange={e => {
+                  const updated = { ...detail, progreso: parseInt(e.target.value) };
+                  updateGoal(updated);
+                  setDetail(updated);
+                }}
+                className="w-full accent-primary" />
+            </div>
+
+            {/* Milestones section in detail */}
+            <div className="pt-2 border-t border-border">
+              <p className="text-xs text-muted-foreground font-bold uppercase tracking-wider mb-3">Hitos del Objetivo</p>
+              <div className="space-y-2">
+                {detail.hitos && detail.hitos.length > 0 ? (
+                  detail.hitos.map(h => (
+                    <div key={h.id} className="flex items-center gap-3 p-3 rounded-xl bg-muted/50"
+                      onClick={() => {
+                        const newHitos = detail.hitos?.map(item => item.id === h.id ? { ...item, completado: !item.completado } : item);
+                        const updated = { ...detail, hitos: newHitos };
+                        updateGoal(updated);
+                        setDetail(updated);
+                      }}>
+                      {h.completado ? <CheckCircle2 className="w-4 h-4 text-success" /> : <Circle className="w-4 h-4 text-muted-foreground/40" />}
+                      <span className={`text-sm ${h.completado ? 'text-muted-foreground line-through' : 'text-foreground'}`}>{h.texto}</span>
+                    </div>
+                  ))
+                ) : (
+                  <p className="text-xs text-muted-foreground text-center py-4 bg-muted/20 rounded-xl italic">
+                    No has definido hitos para este objetivo.
+                  </p>
+                )}
+              </div>
+            </div>
           </div>
         </div>
       )}
@@ -94,10 +149,27 @@ function GoalForm({ onClose }: { onClose: () => void }) {
   const [objetivo, setObjetivo] = useState("");
   const [plazo, setPlazo] = useState<GoalTerm>("Corto");
   const [motivacion, setMotivacion] = useState("");
+  const [fecha, setFecha] = useState("");
+  const [tempHito, setTempHito] = useState("");
+  const [hitos, setHitos] = useState<Milestone[]>([]);
+
+  const addHito = () => {
+    if (!tempHito.trim()) return;
+    setHitos([...hitos, { id: crypto.randomUUID(), texto: tempHito.trim(), completado: false }]);
+    setTempHito("");
+  };
 
   const save = () => {
     if (!objetivo.trim()) return;
-    addGoal({ id: crypto.randomUUID(), objetivo: objetivo.trim(), plazo, motivacion: motivacion.trim(), progreso: 0 });
+    addGoal({
+      id: crypto.randomUUID(),
+      objetivo: objetivo.trim(),
+      plazo,
+      motivacion: motivacion.trim(),
+      progreso: 0,
+      fechaObjetivo: fecha || undefined,
+      hitos: hitos.length > 0 ? hitos : undefined
+    });
     onClose();
   };
 
@@ -110,25 +182,54 @@ function GoalForm({ onClose }: { onClose: () => void }) {
             <X className="w-4 h-4 text-muted-foreground" />
           </button>
         </div>
-        <div className="space-y-3">
+        <div className="space-y-4">
           <input value={objetivo} onChange={e => setObjetivo(e.target.value)} placeholder="¿Cuál es tu objetivo?"
             className="w-full px-3 py-2.5 rounded-lg bg-background border border-border text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring" autoFocus />
+
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="text-xs text-muted-foreground mb-1 block">Plazo</label>
+              <div className="flex gap-2">
+                {TERMS.map(t => (
+                  <button key={t} onClick={() => setPlazo(t)}
+                    className={`flex-1 py-2 rounded-lg text-xs font-medium transition-colors ${plazo === t ? "bg-primary text-primary-foreground" : "bg-background border border-border text-muted-foreground"}`}>
+                    {t}
+                  </button>
+                ))}
+              </div>
+            </div>
+            <div>
+              <label className="text-xs text-muted-foreground mb-1 block">Fecha Objetivo</label>
+              <input type="date" value={fecha} onChange={e => setFecha(e.target.value)}
+                className="w-full px-3 py-2 rounded-lg bg-background border border-border text-xs text-foreground focus:outline-none focus:ring-2 focus:ring-ring" />
+            </div>
+          </div>
+
+          <textarea value={motivacion} onChange={e => setMotivacion(e.target.value)} placeholder="¿Por qué es importante para ti?"
+            rows={2}
+            className="w-full px-3 py-2.5 rounded-lg bg-background border border-border text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring resize-none" />
+
           <div>
-            <label className="text-xs text-muted-foreground mb-1 block">Plazo</label>
-            <div className="flex gap-2">
-              {TERMS.map(t => (
-                <button key={t} onClick={() => setPlazo(t)}
-                  className={`flex-1 py-2 rounded-lg text-xs font-medium transition-colors ${plazo === t ? "bg-primary text-primary-foreground" : "bg-background border border-border text-muted-foreground"}`}>
-                  {t}
-                </button>
+            <label className="text-xs text-muted-foreground mb-1 block">Hitos (pasos para lograrlo)</label>
+            <div className="flex gap-2 mb-2">
+              <input value={tempHito} onChange={e => setTempHito(e.target.value)} placeholder="Ej: Ahorrar 500€..."
+                className="flex-1 px-3 py-2 rounded-lg bg-background border border-border text-xs text-foreground focus:outline-none focus:ring-2 focus:ring-ring" />
+              <button onClick={addHito} className="px-3 py-2 rounded-lg bg-muted text-foreground text-xs font-bold">Añadir</button>
+            </div>
+            <div className="space-y-1.5 max-h-32 overflow-y-auto no-scrollbar">
+              {hitos.map(h => (
+                <div key={h.id} className="flex items-center justify-between p-2 rounded-lg bg-muted/50">
+                  <span className="text-xs text-foreground">{h.texto}</span>
+                  <button onClick={() => setHitos(hitos.filter(item => item.id !== h.id))} className="text-destructive">
+                    <Trash2 className="w-3.5 h-3.5" />
+                  </button>
+                </div>
               ))}
             </div>
           </div>
-          <textarea value={motivacion} onChange={e => setMotivacion(e.target.value)} placeholder="¿Por qué es importante para ti?"
-            rows={3}
-            className="w-full px-3 py-2.5 rounded-lg bg-background border border-border text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring resize-none" />
+
           <button onClick={save}
-            className="w-full py-3 rounded-xl bg-primary text-primary-foreground font-semibold text-sm active:scale-[0.98] transition-transform">
+            className="w-full py-4 rounded-2xl bg-primary text-primary-foreground font-bold text-sm mt-2 active:scale-[0.98] transition-transform">
             Crear Objetivo
           </button>
         </div>

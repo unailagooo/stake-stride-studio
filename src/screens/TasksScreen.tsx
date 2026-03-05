@@ -1,7 +1,8 @@
 import { useState } from "react";
 import { useApp } from "@/context/AppContext";
 import { Task, TaskPriority } from "@/types/models";
-import { Plus, X, Trash2, Circle, CheckCircle2 } from "lucide-react";
+import { Plus, X, Trash2, Circle, CheckCircle2, Search, DollarSign, TrendingUp, Calendar, ListTodo, Repeat } from "lucide-react";
+import { Subtask, TaskRecurrence } from "@/types/models";
 
 const PRIORITY_STYLES: Record<TaskPriority, string> = {
   Alta: "bg-destructive/10 text-destructive",
@@ -15,12 +16,25 @@ const PRIORITY_DOT: Record<TaskPriority, string> = {
   Baja: "bg-pending",
 };
 
+const CATEGORIES = [
+  { id: "Análisis", icon: Search, label: "Análisis" },
+  { id: "Banca", icon: DollarSign, label: "Banca" },
+  { id: "Seguimiento", icon: TrendingUp, label: "Seguimiento" },
+  { id: "Gestión", icon: Calendar, label: "Gestión" },
+];
+
+const RECURRENCE_OPTIONS: TaskRecurrence[] = ["Ninguna", "Diaria", "Semanal", "Mensual"];
+
 export default function TasksScreen() {
   const { tasks, addTask, updateTask, deleteTask } = useApp();
   const [showForm, setShowForm] = useState(false);
   const [nombre, setNombre] = useState("");
   const [prioridad, setPrioridad] = useState<TaskPriority>("Media");
   const [fechaLimite, setFechaLimite] = useState(new Date().toISOString().slice(0, 10));
+  const [categoria, setCategoria] = useState("Gestión");
+  const [recurrencia, setRecurrencia] = useState<TaskRecurrence>("Ninguna");
+  const [tempSubtask, setTempSubtask] = useState("");
+  const [subtasks, setSubtasks] = useState<Subtask[]>([]);
 
   const pending = tasks.filter(t => t.estado === "Pendiente").sort((a, b) => {
     const order: Record<TaskPriority, number> = { Alta: 0, Media: 1, Baja: 2 };
@@ -29,13 +43,51 @@ export default function TasksScreen() {
   const done = tasks.filter(t => t.estado === "Hecho");
 
   const toggle = (task: Task) => {
-    updateTask({ ...task, estado: task.estado === "Pendiente" ? "Hecho" : "Pendiente" });
+    if (task.estado === "Pendiente") {
+      if (task.recurrencia && task.recurrencia !== "Ninguna") {
+        // Handle recurrence: advance date and keep pending
+        const current = new Date(task.fechaLimite);
+        if (task.recurrencia === "Diaria") current.setDate(current.getDate() + 1);
+        else if (task.recurrencia === "Semanal") current.setDate(current.getDate() + 7);
+        else if (task.recurrencia === "Mensual") current.setMonth(current.getMonth() + 1);
+
+        updateTask({
+          ...task,
+          fechaLimite: current.toISOString().slice(0, 10),
+          estado: "Pendiente"
+        });
+      } else {
+        updateTask({ ...task, estado: "Hecho" });
+      }
+    } else {
+      updateTask({ ...task, estado: "Pendiente" });
+    }
+  };
+
+  const toggleSubtask = (task: Task, subId: string) => {
+    const newSubs = task.subtareas?.map(s => s.id === subId ? { ...s, completada: !s.completada } : s);
+    updateTask({ ...task, subtareas: newSubs });
   };
 
   const saveTask = () => {
     if (!nombre.trim()) return;
-    addTask({ id: crypto.randomUUID(), tarea: nombre.trim(), estado: "Pendiente", prioridad, fechaLimite });
-    setNombre(""); setShowForm(false);
+    addTask({
+      id: crypto.randomUUID(),
+      tarea: nombre.trim(),
+      estado: "Pendiente",
+      prioridad,
+      fechaLimite,
+      categoria,
+      recurrencia,
+      subtareas: subtasks
+    });
+    setNombre(""); setSubtasks([]); setRecurrencia("Ninguna"); setShowForm(false);
+  };
+
+  const addSubtask = () => {
+    if (!tempSubtask.trim()) return;
+    setSubtasks([...subtasks, { id: crypto.randomUUID(), texto: tempSubtask.trim(), completada: false }]);
+    setTempSubtask("");
   };
 
   return (
@@ -54,28 +106,63 @@ export default function TasksScreen() {
           </div>
         )}
 
-        {pending.map(task => (
-          <div key={task.id} className="ios-card p-3 flex items-center gap-3">
-            <button onClick={() => toggle(task)} className="flex-shrink-0">
-              <Circle className="w-5 h-5 text-muted-foreground" />
-            </button>
-            <div className="flex-1 min-w-0">
-              <p className="text-sm font-medium text-foreground">{task.tarea}</p>
-              <p className="text-[10px] text-muted-foreground">
-                {new Date(task.fechaLimite).toLocaleDateString("es-ES", { day: "numeric", month: "short" })}
-              </p>
+        {pending.map(task => {
+          const CatIcon = CATEGORIES.find(c => c.id === task.categoria)?.icon || ListTodo;
+          const doneSubs = task.subtareas?.filter(s => s.completada).length || 0;
+          const totalSubs = task.subtareas?.length || 0;
+
+          return (
+            <div key={task.id} className="ios-card p-3 space-y-3">
+              <div className="flex items-center gap-3">
+                <button onClick={() => toggle(task)} className="flex-shrink-0">
+                  <Circle className="w-5 h-5 text-muted-foreground" />
+                </button>
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-1.5">
+                    <CatIcon className="w-3 h-3 text-primary" />
+                    <p className="text-sm font-medium text-foreground">{task.tarea}</p>
+                  </div>
+                  <div className="flex items-center gap-2 mt-0.5">
+                    <p className="text-[10px] text-muted-foreground">
+                      {new Date(task.fechaLimite).toLocaleDateString("es-ES", { day: "numeric", month: "short" })}
+                    </p>
+                    {task.recurrencia && task.recurrencia !== "Ninguna" && (
+                      <div className="flex items-center gap-1 text-[10px] text-primary font-medium">
+                        <Repeat className="w-2.5 h-2.5" /> {task.recurrencia}
+                      </div>
+                    )}
+                  </div>
+                </div>
+                <div className="flex items-center gap-2">
+                  <div className={`w-2 h-2 rounded-full ${PRIORITY_DOT[task.prioridad]}`} />
+                  <span className={`text-[10px] px-2 py-0.5 rounded-full font-medium ${PRIORITY_STYLES[task.prioridad]}`}>
+                    {task.prioridad}
+                  </span>
+                </div>
+                <button onClick={() => deleteTask(task.id)} className="flex-shrink-0 opacity-40">
+                  <Trash2 className="w-3.5 h-3.5 text-muted-foreground" />
+                </button>
+              </div>
+
+              {totalSubs > 0 && (
+                <div className="pl-8 space-y-1.5">
+                  <div className="flex items-center justify-between mb-1">
+                    <p className="text-[10px] text-muted-foreground font-bold uppercase tracking-wider">Subtareas ({doneSubs}/{totalSubs})</p>
+                    <div className="w-20 h-1 bg-muted rounded-full">
+                      <div className="h-full bg-primary rounded-full transition-all" style={{ width: `${(doneSubs / totalSubs) * 100}%` }} />
+                    </div>
+                  </div>
+                  {task.subtareas?.map(sub => (
+                    <div key={sub.id} className="flex items-center gap-2" onClick={() => toggleSubtask(task, sub.id)}>
+                      {sub.completada ? <CheckCircle2 className="w-3.5 h-3.5 text-success" /> : <Circle className="w-3.5 h-3.5 text-muted-foreground/40" />}
+                      <span className={`text-xs ${sub.completada ? 'text-muted-foreground line-through' : 'text-foreground'}`}>{sub.texto}</span>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
-            <div className="flex items-center gap-2">
-              <div className={`w-2 h-2 rounded-full ${PRIORITY_DOT[task.prioridad]}`} />
-              <span className={`text-[10px] px-2 py-0.5 rounded-full font-medium ${PRIORITY_STYLES[task.prioridad]}`}>
-                {task.prioridad}
-              </span>
-            </div>
-            <button onClick={() => deleteTask(task.id)} className="flex-shrink-0 opacity-40">
-              <Trash2 className="w-3.5 h-3.5 text-muted-foreground" />
-            </button>
-          </div>
-        ))}
+          );
+        })}
 
         {done.length > 0 && (
           <>
@@ -105,29 +192,72 @@ export default function TasksScreen() {
                 <X className="w-4 h-4 text-muted-foreground" />
               </button>
             </div>
-            <div className="space-y-3">
+            <div className="space-y-4">
               <input value={nombre} onChange={e => setNombre(e.target.value)} placeholder="¿Qué necesitas hacer?"
                 className="w-full px-3 py-2.5 rounded-lg bg-background border border-border text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring"
                 autoFocus />
-              <div className="flex gap-2">
-                <input type="date" value={fechaLimite} onChange={e => setFechaLimite(e.target.value)}
-                  className="flex-1 px-3 py-2.5 rounded-lg bg-background border border-border text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring" />
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="text-xs text-muted-foreground mb-1 block">Fecha Límite</label>
+                  <input type="date" value={fechaLimite} onChange={e => setFechaLimite(e.target.value)}
+                    className="w-full px-3 py-2.5 rounded-lg bg-background border border-border text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring" />
+                </div>
+                <div>
+                  <label className="text-xs text-muted-foreground mb-1 block">Recurrencia</label>
+                  <select value={recurrencia} onChange={e => setRecurrencia(e.target.value as any)}
+                    className="w-full px-3 py-2.5 rounded-lg bg-background border border-border text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring">
+                    {RECURRENCE_OPTIONS.map(opt => <option key={opt} value={opt}>{opt}</option>)}
+                  </select>
+                </div>
               </div>
+
+              <div>
+                <label className="text-xs text-muted-foreground mb-1 block">Categoría</label>
+                <div className="flex gap-2 overflow-x-auto no-scrollbar pb-1">
+                  {CATEGORIES.map(cat => (
+                    <button key={cat.id} onClick={() => setCategoria(cat.id)}
+                      className={`flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-medium transition-colors whitespace-nowrap ${categoria === cat.id ? "bg-primary text-primary-foreground" : "bg-background border border-border text-muted-foreground"}`}>
+                      <cat.icon className="w-3.5 h-3.5" /> {cat.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
               <div>
                 <label className="text-xs text-muted-foreground mb-1 block">Prioridad</label>
                 <div className="flex gap-2">
                   {(["Alta", "Media", "Baja"] as TaskPriority[]).map(p => (
                     <button key={p} onClick={() => setPrioridad(p)}
-                      className={`flex-1 py-2 rounded-lg text-xs font-medium transition-colors ${prioridad === p ? "bg-primary text-primary-foreground" : "bg-background border border-border text-muted-foreground"
-                        }`}>
+                      className={`flex-1 py-2 rounded-lg text-xs font-medium transition-colors ${prioridad === p ? "bg-primary text-primary-foreground" : "bg-background border border-border text-muted-foreground"}`}>
                       {p}
                     </button>
                   ))}
                 </div>
               </div>
+
+              <div className="pt-2">
+                <label className="text-xs text-muted-foreground mb-1 block">Subtareas</label>
+                <div className="flex gap-2 mb-2">
+                  <input value={tempSubtask} onChange={e => setTempSubtask(e.target.value)} placeholder="Nueva subtarea..."
+                    className="flex-1 px-3 py-2 rounded-lg bg-background border border-border text-xs text-foreground focus:outline-none focus:ring-2 focus:ring-ring" />
+                  <button onClick={addSubtask} className="px-3 py-2 rounded-lg bg-muted text-foreground text-xs font-bold">Añadir</button>
+                </div>
+                <div className="space-y-1.5 max-h-32 overflow-y-auto no-scrollbar">
+                  {subtasks.map(sub => (
+                    <div key={sub.id} className="flex items-center justify-between p-2 rounded-lg bg-muted/50">
+                      <span className="text-xs text-foreground">{sub.texto}</span>
+                      <button onClick={() => setSubtasks(subtasks.filter(s => s.id !== sub.id))} className="text-destructive">
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
               <button onClick={saveTask}
-                className="w-full py-3 rounded-xl bg-primary text-primary-foreground font-semibold text-sm active:scale-[0.98] transition-transform">
-                Añadir Tarea
+                className="w-full py-4 rounded-2xl bg-primary text-primary-foreground font-bold text-sm mt-2 active:scale-[0.98] transition-transform">
+                Crear Tarea
               </button>
             </div>
           </div>
