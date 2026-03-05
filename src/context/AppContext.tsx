@@ -19,6 +19,9 @@ interface AppState {
   deleteFolder: (id: string) => void;
   updateFolder: (folder: BetFolder) => void;
   duplicateBets: (betIds: string[], targetFolderId: string) => void;
+  taskCategories: string[];
+  addTaskCategory: (category: string) => void;
+  deleteTaskCategory: (category: string) => void;
 }
 
 const AppContext = createContext<AppState | null>(null);
@@ -35,11 +38,13 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const [tasks, setTasks] = useState<Task[]>(() => load<Task>("tt_tasks", []));
   const [goals, setGoals] = useState<Goal[]>(() => load<Goal>("tt_goals", []));
   const [folders, setFolders] = useState<BetFolder[]>(() => load<BetFolder>("tt_folders", DEFAULT_FOLDERS));
+  const [taskCategories, setTaskCategories] = useState<string[]>(() => load<string>("tt_task_categories", ["Análisis", "Banca", "Seguimiento", "Gestión"]));
 
   useEffect(() => { localStorage.setItem("tt_bets", JSON.stringify(bets)); }, [bets]);
   useEffect(() => { localStorage.setItem("tt_tasks", JSON.stringify(tasks)); }, [tasks]);
   useEffect(() => { localStorage.setItem("tt_goals", JSON.stringify(goals)); }, [goals]);
   useEffect(() => { localStorage.setItem("tt_folders", JSON.stringify(folders)); }, [folders]);
+  useEffect(() => { localStorage.setItem("tt_task_categories", JSON.stringify(taskCategories)); }, [taskCategories]);
 
   const addBet = useCallback((b: Bet) => setBets(p => [b, ...p]), []);
   const updateBet = useCallback((b: Bet) => setBets(p => p.map(x => x.id === b.id ? b : x)), []);
@@ -57,6 +62,14 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   }, []);
   const updateFolder = useCallback((f: BetFolder) => setFolders(p => p.map(x => x.id === f.id ? f : x)), []);
 
+  const addTaskCategory = useCallback((cat: string) => {
+    setTaskCategories(p => p.includes(cat) ? p : [...p, cat]);
+  }, []);
+
+  const deleteTaskCategory = useCallback((cat: string) => {
+    setTaskCategories(p => p.filter(x => x !== cat));
+  }, []);
+
   const duplicateBets = useCallback((ids: string[], targetId: string) => {
     setBets(p => {
       const toDuplicate = p.filter(b => ids.includes(b.id));
@@ -71,7 +84,14 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   return (
-    <AppContext.Provider value={{ bets, tasks, goals, folders, addBet, updateBet, deleteBet, addTask, updateTask, deleteTask, addGoal, updateGoal, deleteGoal, addFolder, deleteFolder, updateFolder, duplicateBets }}>
+    <AppContext.Provider value={{
+      bets, tasks, goals, folders, taskCategories,
+      addBet, updateBet, deleteBet,
+      addTask, updateTask, deleteTask,
+      addGoal, updateGoal, deleteGoal,
+      addFolder, deleteFolder, updateFolder,
+      duplicateBets, addTaskCategory, deleteTaskCategory
+    }}>
       {children}
     </AppContext.Provider>
   );

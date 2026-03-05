@@ -20,9 +20,6 @@ function AppShell() {
 
   return (
     <div className="min-h-screen bg-background max-w-lg mx-auto relative">
-      <div className="fixed top-2 left-1/2 -translate-x-1/2 z-[100] px-4 py-1 bg-primary text-primary-foreground text-[10px] font-bold rounded-full shadow-lg pointer-events-none">
-        VERSIÓN V2.1 - CARGADA
-      </div>
       <div className="pb-16 overflow-y-auto" style={{ minHeight: "100dvh" }}>
         {tab === "bets" && <BetsScreen />}
         {tab === "tasks" && <TasksScreen />}

@@ -34,7 +34,12 @@ export interface Bet {
   resultado: BetResult;
 }
 
-export type TaskRecurrence = "Ninguna" | "Diaria" | "Semanal" | "Mensual";
+export type RecurrenceType = "Ninguna" | "Diaria" | "Semanal" | "Mensual" | "Personalizada";
+
+export interface TaskRecurrence {
+  type: RecurrenceType;
+  days?: number[]; // 0-6 (Sunday-Saturday) for weekly custom
+}
 
 export interface Subtask {
   id: string;
@@ -47,7 +52,8 @@ export interface Task {
   tarea: string;
   estado: TaskStatus;
   prioridad: TaskPriority;
-  fechaLimite: string;
+  fechaLimite?: string; // Optional
+  hora?: string; // Optional
   recurrencia?: TaskRecurrence;
   categoria?: string; // Icon or name
   subtareas?: Subtask[];

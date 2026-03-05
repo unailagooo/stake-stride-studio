@@ -1,7 +1,7 @@
 import { useState, useMemo } from "react";
 import { useApp } from "@/context/AppContext";
 import { ChevronLeft, ChevronRight } from "lucide-react";
-import { getCombinedCuota } from "@/types/models";
+import { getCombinedCuota, Task } from "@/types/models";
 
 function getDaysInMonth(year: number, month: number) {
   return new Date(year, month + 1, 0).getDate();
@@ -25,16 +25,42 @@ export default function CalendarScreen() {
   const daysInMonth = getDaysInMonth(year, month);
   const firstDay = getFirstDayOfWeek(year, month);
 
-  // Dates with events
-  const eventDates = useMemo(() => {
-    const dates = new Set<string>();
-    bets.forEach(b => dates.add(b.fecha));
-    tasks.forEach(t => dates.add(t.fechaLimite));
-    return dates;
-  }, [bets, tasks]);
+  const isTaskOnDate = (task: Task, dateStr: string) => {
+    if (!task.fechaLimite) return false;
+
+    // Exact match
+    if (task.fechaLimite === dateStr) return true;
+
+    // Check future occurrences for recurring tasks
+    if (task.recurrencia && task.recurrencia.type !== "Ninguna") {
+      const taskDate = new Date(task.fechaLimite + "T00:00:00");
+      const targetDate = new Date(dateStr + "T00:00:00");
+
+      if (targetDate < taskDate) return false;
+
+      if (task.recurrencia.type === "Diaria") return true;
+
+      const diffTime = targetDate.getTime() - taskDate.getTime();
+      const diffDays = Math.round(diffTime / (1000 * 60 * 60 * 24));
+
+      if (task.recurrencia.type === "Semanal") return diffDays % 7 === 0;
+      if (task.recurrencia.type === "Mensual") return targetDate.getDate() === taskDate.getDate();
+      if (task.recurrencia.type === "Personalizada" && task.recurrencia.days) {
+        return task.recurrencia.days.includes(targetDate.getDay());
+      }
+    }
+
+    return false;
+  };
+
+  const hasEventOnDate = (dateStr: string) => {
+    const hasBet = bets.some(b => b.fecha === dateStr);
+    const hasTask = tasks.some(t => isTaskOnDate(t, dateStr));
+    return hasBet || hasTask;
+  };
 
   const selectedBets = bets.filter(b => b.fecha === selectedDate);
-  const selectedTasks = tasks.filter(t => t.fechaLimite === selectedDate);
+  const selectedTasks = tasks.filter(t => isTaskOnDate(t, selectedDate));
 
   const prev = () => {
     if (month === 0) { setMonth(11); setYear(y => y - 1); }
@@ -76,16 +102,15 @@ export default function CalendarScreen() {
               const dateStr = `${year}-${String(month + 1).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
               const isSelected = dateStr === selectedDate;
               const isToday = dateStr === todayStr;
-              const hasEvent = eventDates.has(dateStr);
+              const hasEvent = hasEventOnDate(dateStr);
 
               return (
                 <button key={day} onClick={() => setSelectedDate(dateStr)}
                   className="flex flex-col items-center py-1.5">
-                  <span className={`w-8 h-8 flex items-center justify-center rounded-full text-sm transition-colors ${
-                    isSelected ? "bg-primary text-primary-foreground font-bold" :
-                    isToday ? "bg-primary/10 text-primary font-semibold" :
-                    "text-foreground"
-                  }`}>
+                  <span className={`w-8 h-8 flex items-center justify-center rounded-full text-sm transition-colors ${isSelected ? "bg-primary text-primary-foreground font-bold" :
+                      isToday ? "bg-primary/10 text-primary font-semibold" :
+                        "text-foreground"
+                    }`}>
                     {day}
                   </span>
                   {hasEvent && <div className={`w-1 h-1 rounded-full mt-0.5 ${isSelected ? "bg-primary-foreground" : "bg-primary"}`} />}
@@ -111,9 +136,8 @@ export default function CalendarScreen() {
         <div className="space-y-2">
           {selectedBets.map(bet => (
             <div key={bet.id} className="ios-card p-3 flex items-center gap-3">
-              <div className={`w-2 h-8 rounded-full ${
-                bet.resultado === "Ganada" ? "bg-success" : bet.resultado === "Perdida" ? "bg-destructive" : "bg-pending"
-              }`} />
+              <div className={`w-2 h-8 rounded-full ${bet.resultado === "Ganada" ? "bg-success" : bet.resultado === "Perdida" ? "bg-destructive" : "bg-pending"
+                }`} />
               <div className="flex-1 min-w-0">
                 <p className="text-xs text-muted-foreground">🏟 Apuesta</p>
                 <p className="text-sm font-medium text-foreground truncate">{bet.partido}</p>
@@ -123,16 +147,17 @@ export default function CalendarScreen() {
           ))}
           {selectedTasks.map(task => (
             <div key={task.id} className="ios-card p-3 flex items-center gap-3">
-              <div className={`w-2 h-8 rounded-full ${
-                task.prioridad === "Alta" ? "bg-destructive" : task.prioridad === "Media" ? "bg-warning" : "bg-pending"
-              }`} />
+              <div className={`w-2 h-8 rounded-full ${task.prioridad === "Alta" ? "bg-destructive" : task.prioridad === "Media" ? "bg-warning" : "bg-pending"
+                }`} />
               <div className="flex-1 min-w-0">
-                <p className="text-xs text-muted-foreground">📋 Tarea</p>
+                <div className="flex items-center gap-2">
+                  <p className="text-xs text-muted-foreground">📋 Tarea</p>
+                  {task.hora && <span className="text-[10px] font-bold text-primary">@{task.hora}</span>}
+                </div>
                 <p className={`text-sm font-medium ${task.estado === "Hecho" ? "text-muted-foreground line-through" : "text-foreground"}`}>{task.tarea}</p>
               </div>
-              <span className={`text-[10px] px-2 py-0.5 rounded-full font-medium ${
-                task.estado === "Hecho" ? "bg-success/10 text-success" : "bg-muted text-muted-foreground"
-              }`}>{task.estado}</span>
+              <span className={`text-[10px] px-2 py-0.5 rounded-full font-medium ${task.estado === "Hecho" ? "bg-success/10 text-success" : "bg-muted text-muted-foreground"
+                }`}>{task.estado}</span>
             </div>
           ))}
         </div>
