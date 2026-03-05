@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useApp } from "@/context/AppContext";
 import { Bet, BetFolder, BetResult, calcBenefit, getCombinedCuota, getCombinedResult } from "@/types/models";
-import { ArrowLeft, Plus, Trash2, TrendingUp, Target, BarChart3, Percent } from "lucide-react";
+import { ArrowLeft, Plus, Trash2, TrendingUp, Target, BarChart3, Percent, Filter, ArrowUpDown } from "lucide-react";
 import { BetFormModal } from "@/components/BetFormModal";
 
 function resultBg(r: BetResult) {
@@ -23,6 +23,31 @@ export default function BetsFolderScreen({ folder, onBack }: Props) {
   const [editBet, setEditBet] = useState<Bet | null>(null);
   const [betType, setBetType] = useState<"simple" | "combined">("simple");
   const [showDelete, setShowDelete] = useState(false);
+  const [filterResult, setFilterResult] = useState<BetResult | "Todas">("Todas");
+  const [sortBy, setSortBy] = useState<"fecha" | "cuota" | "stake">("fecha");
+  const [sortOrder, setSortOrder] = useState<"asc" | "desc">("desc");
+
+  const filteredBets = bets
+    .filter(b => b.folderId === folder.id)
+    .filter(b => {
+      if (filterResult === "Todas") return true;
+      const r = b.type === "combined" ? getCombinedResult(b) : b.resultado;
+      return r === filterResult;
+    })
+    .sort((a, b) => {
+      let valA, valB;
+      if (sortBy === "fecha") {
+        valA = new Date(`${a.fecha}T${a.hora || '00:00'}`).getTime();
+        valB = new Date(`${b.fecha}T${b.hora || '00:00'}`).getTime();
+      } else if (sortBy === "cuota") {
+        valA = a.type === "combined" ? getCombinedCuota(a) : a.cuota;
+        valB = b.type === "combined" ? getCombinedCuota(b) : b.cuota;
+      } else {
+        valA = a.stake || 0;
+        valB = b.stake || 0;
+      }
+      return sortOrder === "asc" ? valA - valB : valB - valA;
+    });
 
   const folderBets = bets.filter(b => b.folderId === folder.id);
 
@@ -78,14 +103,46 @@ export default function BetsFolderScreen({ folder, onBack }: Props) {
         </div>
       )}
 
+      {/* Filters & Sorting */}
+      <div className="px-4 mb-4 space-y-3">
+        <div className="flex items-center gap-2 overflow-x-auto pb-1 no-scrollbar">
+          {(["Todas", "Pendiente", "Ganada", "Perdida", "Nula"] as const).map(res => (
+            <button key={res} onClick={() => setFilterResult(res)}
+              className={`px-3 py-1.5 rounded-full text-xs font-medium whitespace-nowrap transition-colors ${filterResult === res ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground'
+                }`}>
+              {res}
+            </button>
+          ))}
+        </div>
+
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <span className="text-[10px] text-muted-foreground uppercase font-bold">Ordenar por</span>
+            <select value={sortBy} onChange={(e) => setSortBy(e.target.value as any)}
+              className="bg-transparent text-xs font-semibold text-foreground focus:outline-none">
+              <option value="fecha">Fecha</option>
+              <option value="cuota">Cuota</option>
+              <option value="stake">Stake</option>
+            </select>
+          </div>
+          <button onClick={() => setSortOrder(sortOrder === "asc" ? "desc" : "asc")}
+            className="flex items-center gap-1 text-xs font-semibold text-primary">
+            <ArrowUpDown className="w-3 h-3" />
+            {sortOrder === "asc" ? "Ascendente" : "Descendente"}
+          </button>
+        </div>
+      </div>
+
       {/* Bet list */}
       <div className="px-4 space-y-2">
-        {folderBets.length === 0 && (
+        {filteredBets.length === 0 && (
           <div className="ios-card p-8 text-center">
-            <p className="text-muted-foreground text-sm">No hay apuestas en esta carpeta</p>
+            <p className="text-muted-foreground text-sm">
+              {folderBets.length === 0 ? "No hay apuestas en esta carpeta" : "No hay apuestas con este filtro"}
+            </p>
           </div>
         )}
-        {folderBets.map(bet => {
+        {filteredBets.map(bet => {
           const resultado = bet.type === "combined" ? getCombinedResult(bet) : bet.resultado;
           const cuota = bet.type === "combined" ? getCombinedCuota(bet) : bet.cuota;
           const benefit = calcBenefit(bet);
@@ -95,7 +152,7 @@ export default function BetsFolderScreen({ folder, onBack }: Props) {
               className="ios-card p-3 flex items-center gap-3 active:scale-[0.98] transition-transform cursor-pointer"
               onClick={() => { setEditBet(bet); setBetType(bet.type); setShowForm(true); }}>
               <div className={`w-2 h-10 rounded-full flex-shrink-0 ${resultado === "Ganada" ? "bg-success" :
-                  resultado === "Perdida" ? "bg-destructive" : "bg-pending"
+                resultado === "Perdida" ? "bg-destructive" : "bg-pending"
                 }`} />
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-1.5">
@@ -111,6 +168,7 @@ export default function BetsFolderScreen({ folder, onBack }: Props) {
                 </p>
                 <p className="text-[10px] text-muted-foreground mt-0.5">
                   {new Date(bet.fecha).toLocaleDateString("es-ES", { day: "numeric", month: "short" })}
+                  {bet.hora ? ` · ${bet.hora}` : ''}
                   {bet.type === "combined" && bet.legs ? ` · ${bet.legs.length} selecciones` : ''}
                 </p>
               </div>

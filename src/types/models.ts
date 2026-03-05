@@ -22,6 +22,7 @@ export interface Bet {
   folderId: string;
   type: "simple" | "combined";
   fecha: string; // ISO date string
+  hora?: string; // Optional time string "HH:mm"
   // Simple bet fields
   partido: string;
   pronostico: string;

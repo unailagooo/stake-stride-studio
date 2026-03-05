@@ -21,6 +21,7 @@ export function BetFormModal({ bet, folderId, betType, hasStake, onClose, onDele
 
   // Simple fields
   const [fecha, setFecha] = useState(bet?.fecha || new Date().toISOString().slice(0, 10));
+  const [hora, setHora] = useState(bet?.hora || "");
   const [partido, setPartido] = useState(bet?.partido || "");
   const [pronostico, setPronostico] = useState(bet?.pronostico || "");
   const [cuota, setCuota] = useState(bet?.cuota.toString() || "");
@@ -56,6 +57,7 @@ export function BetFormModal({ bet, folderId, betType, hasStake, onClose, onDele
         folderId,
         type: "simple",
         fecha,
+        hora: hora || undefined,
         partido: partido.trim(),
         pronostico: pronostico.trim(),
         cuota: parseFloat(cuota) || 0,
@@ -72,6 +74,7 @@ export function BetFormModal({ bet, folderId, betType, hasStake, onClose, onDele
         folderId,
         type: "combined",
         fecha,
+        hora: hora || undefined,
         partido: validLegs.map(l => l.partido).join(" + "),
         pronostico: validLegs.map(l => l.pronostico).join(" | "),
         cuota: combinedCuota,
@@ -116,15 +119,15 @@ export function BetFormModal({ bet, folderId, betType, hasStake, onClose, onDele
                 <input value={pronostico} onChange={e => setPronostico(e.target.value)} placeholder="Ej: Over 2.5 goles"
                   className="w-full px-3 py-2.5 rounded-lg bg-background border border-border text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring" />
               </div>
-              <div className="grid grid-cols-3 gap-2">
-                <div>
+              <div className="grid grid-cols-4 gap-2">
+                <div className="col-span-2">
                   <label className="text-xs text-muted-foreground mb-1 block">Fecha</label>
                   <input type="date" value={fecha} onChange={e => setFecha(e.target.value)}
                     className="w-full px-2 py-2.5 rounded-lg bg-background border border-border text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring" />
                 </div>
                 <div>
-                  <label className="text-xs text-muted-foreground mb-1 block">Cuota *</label>
-                  <input type="number" step="0.01" value={cuota} onChange={e => setCuota(e.target.value)} placeholder="1.85"
+                  <label className="text-xs text-muted-foreground mb-1 block">Hora</label>
+                  <input type="time" value={hora} onChange={e => setHora(e.target.value)}
                     className="w-full px-2 py-2.5 rounded-lg bg-background border border-border text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring" />
                 </div>
                 {hasStake && (
@@ -180,10 +183,15 @@ export function BetFormModal({ bet, folderId, betType, hasStake, onClose, onDele
                 </button>
               </div>
 
-              <div className="grid grid-cols-2 gap-2">
-                <div>
+              <div className="grid grid-cols-3 gap-2">
+                <div className="col-span-1">
                   <label className="text-xs text-muted-foreground mb-1 block">Fecha</label>
                   <input type="date" value={fecha} onChange={e => setFecha(e.target.value)}
+                    className="w-full px-2 py-2.5 rounded-lg bg-background border border-border text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring" />
+                </div>
+                <div>
+                  <label className="text-xs text-muted-foreground mb-1 block">Hora</label>
+                  <input type="time" value={hora} onChange={e => setHora(e.target.value)}
                     className="w-full px-2 py-2.5 rounded-lg bg-background border border-border text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring" />
                 </div>
                 {hasStake && (
