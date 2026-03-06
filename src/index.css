@@ -71,6 +71,13 @@
     -webkit-tap-highlight-color: transparent;
     user-select: none;
   }
+
+  /* Prevent iOS zoom on focus */
+  @media screen and (max-width: 768px) {
+    input, textarea, select {
+      font-size: 16px !important;
+    }
+  }
 }
 
 @layer utilities {
