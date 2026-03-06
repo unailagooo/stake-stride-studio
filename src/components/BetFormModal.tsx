@@ -1,8 +1,9 @@
 import { useState } from "react";
 import { useApp } from "@/context/AppContext";
 import { Bet, BetLeg, BetResult } from "@/types/models";
-import { X, Trash2, Plus, Minus } from "lucide-react";
-import { motion } from "framer-motion";
+import { X, Trash2, Plus, Minus, Share2 } from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
+import { TicketGenerator } from "./TicketGenerator";
 
 interface Props {
   bet: Bet | null;
@@ -16,8 +17,10 @@ interface Props {
 const RESULTS: BetResult[] = ["Pendiente", "Ganada", "Perdida", "Nula"];
 
 export function BetFormModal({ bet, folderId, betType, hasStake, onClose, onDelete }: Props) {
-  const { addBet, updateBet } = useApp();
+  const { addBet, updateBet, folders } = useApp();
+  const folder = folders.find(f => f.id === folderId);
   const isEdit = !!bet;
+  const [showTicket, setShowTicket] = useState(false);
   const type = isEdit ? bet.type : betType;
 
   // Simple fields
@@ -118,6 +121,11 @@ export function BetFormModal({ bet, folderId, betType, hasStake, onClose, onDele
             {isEdit ? "Editar" : "Nueva"} {type === "combined" ? "Combinada" : "Apuesta"}
           </h2>
           <div className="flex gap-2">
+            {isEdit && (
+              <button onClick={() => setShowTicket(true)} className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center">
+                <Share2 className="w-4 h-4 text-primary" />
+              </button>
+            )}
             {onDelete && (
               <button onClick={onDelete} className="w-8 h-8 rounded-full bg-destructive/10 flex items-center justify-center">
                 <Trash2 className="w-4 h-4 text-destructive" />
@@ -276,6 +284,16 @@ export function BetFormModal({ bet, folderId, betType, hasStake, onClose, onDele
           </button>
         </div>
       </motion.div>
+
+      <AnimatePresence>
+        {showTicket && isEdit && bet && (
+          <TicketGenerator
+            bet={bet}
+            folderName={folder?.name || "Apuesta"}
+            onClose={() => setShowTicket(false)}
+          />
+        )}
+      </AnimatePresence>
     </div>
   );
 }
