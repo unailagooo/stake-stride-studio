@@ -78,7 +78,12 @@ export interface Goal {
 // For combined bets, cuota = product of all leg cuotas
 export function getCombinedCuota(bet: Bet): number {
   if (bet.type === "simple") return bet.cuota || 0;
-  if (!bet?.legs || bet.legs.length === 0) return bet.cuota || 0;
+  // If we have a stored cuota and it's not 0, and we either have no legs or the user manually edited it
+  // Actually, the simplest way to allow override is to check if bet.cuota is set and use it.
+  // We'll update getCombinedCuota to return the stored bet.cuota if it's > 0, 
+  // falling back to calculation only if bet.cuota is 0/undefined.
+  if (bet.cuota && bet.cuota > 0) return bet.cuota;
+  if (!bet?.legs || bet.legs.length === 0) return 0;
   return bet.legs.reduce((acc, leg) => acc * (leg.cuota || 0), 1);
 }
 

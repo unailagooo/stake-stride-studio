@@ -1,8 +1,10 @@
 import { useState } from "react";
+import { motion } from "framer-motion";
 import { useApp } from "@/context/AppContext";
 import { BetFolder, calcBenefit, getCombinedCuota, getCombinedResult } from "@/types/models";
 import { Plus, Folder, Trash2, TrendingUp, Target, BarChart3, Percent, ChevronRight, X, ToggleLeft, ToggleRight } from "lucide-react";
 import BetsFolderScreen from "@/screens/BetsFolderScreen";
+import { SwipeableItem } from "@/components/SwipeableItem";
 
 export default function BetsScreen() {
   const { bets, folders, addFolder, deleteFolder } = useApp();
@@ -60,27 +62,29 @@ export default function BetsScreen() {
           const pending = folderBets.filter(b => (b.type === "combined" ? getCombinedResult(b) : b.resultado) === "Pendiente").length;
 
           return (
-            <button key={folder.id} onClick={() => setOpenFolder(folder)}
-              className="ios-card p-4 w-full text-left flex items-center gap-3 active:scale-[0.98] transition-transform">
-              <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${folder.hasStake ? 'bg-primary/10' : 'bg-muted'}`}>
-                <Folder className={`w-5 h-5 ${folder.hasStake ? 'text-primary' : 'text-muted-foreground'}`} />
-              </div>
-              <div className="flex-1 min-w-0">
-                <p className="text-sm font-semibold text-foreground">{folder.name}</p>
-                <p className="text-xs text-muted-foreground">
-                  {folderBets.length} apuestas{pending > 0 ? ` · ${pending} pendientes` : ''}
-                  {!folder.hasStake && ' · Sin stake'}
-                </p>
-              </div>
-              <div className="flex items-center gap-2">
-                {folder.hasStake && folderBets.length > 0 && (
-                  <span className={`text-xs font-semibold ${folderBenefit >= 0 ? 'text-success' : 'text-destructive'}`}>
-                    {folderBenefit >= 0 ? '+' : ''}{folderBenefit.toFixed(2)}€
-                  </span>
-                )}
-                <ChevronRight className="w-4 h-4 text-muted-foreground" />
-              </div>
-            </button>
+            <SwipeableItem key={folder.id} onDelete={() => deleteFolder(folder.id)}>
+              <button onClick={() => setOpenFolder(folder)}
+                className="ios-card p-4 w-full text-left flex items-center gap-3 active:scale-[0.98] transition-transform">
+                <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${folder.hasStake ? 'bg-primary/10' : 'bg-muted'}`}>
+                  <Folder className={`w-5 h-5 ${folder.hasStake ? 'text-primary' : 'text-muted-foreground'}`} />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-semibold text-foreground">{folder.name}</p>
+                  <p className="text-xs text-muted-foreground">
+                    {folderBets.length} apuestas{pending > 0 ? ` · ${pending} pendientes` : ''}
+                    {!folder.hasStake && ' · Sin stake'}
+                  </p>
+                </div>
+                <div className="flex items-center gap-2">
+                  {folder.hasStake && folderBets.length > 0 && (
+                    <span className={`text-xs font-semibold ${folderBenefit >= 0 ? 'text-success' : 'text-destructive'}`}>
+                      {folderBenefit >= 0 ? '+' : ''}{folderBenefit.toFixed(2)}€
+                    </span>
+                  )}
+                  <ChevronRight className="w-4 h-4 text-muted-foreground" />
+                </div>
+              </button>
+            </SwipeableItem>
           );
         })}
 
@@ -125,7 +129,15 @@ function NewFolderModal({ onClose }: { onClose: () => void }) {
 
   return (
     <div className="fixed inset-0 z-50 flex items-end justify-center bg-foreground/30 animate-fade-in" onClick={onClose}>
-      <div className="bg-card w-full max-w-lg rounded-t-2xl p-5 pb-12 animate-slide-up safe-bottom" onClick={e => e.stopPropagation()}>
+      <motion.div
+        drag="y"
+        dragConstraints={{ top: 0 }}
+        dragElastic={0.2}
+        onDragEnd={(_, info) => {
+          if (info.offset.y > 100) onClose();
+        }}
+        className="bg-card w-full max-w-lg rounded-t-2xl p-5 pb-12 animate-slide-up safe-bottom" onClick={e => e.stopPropagation()}>
+        <div className="w-12 h-1.5 bg-muted rounded-full mx-auto mb-4 opacity-40 shrink-0" />
         <div className="flex items-center justify-between mb-4">
           <h2 className="text-lg font-bold text-foreground">Nueva Carpeta</h2>
           <button onClick={onClose} className="w-8 h-8 rounded-full bg-muted flex items-center justify-center">
@@ -149,7 +161,7 @@ function NewFolderModal({ onClose }: { onClose: () => void }) {
             Crear Carpeta
           </button>
         </div>
-      </div>
+      </motion.div>
     </div>
   );
 }

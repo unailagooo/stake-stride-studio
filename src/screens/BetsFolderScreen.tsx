@@ -3,6 +3,8 @@ import { useApp } from "@/context/AppContext";
 import { Bet, BetFolder, BetResult, calcBenefit, getCombinedCuota, getCombinedResult } from "@/types/models";
 import { ArrowLeft, Plus, Trash2, TrendingUp, Target, BarChart3, Percent, Filter, ArrowUpDown, CheckSquare, Square, Copy, X as CloseIcon } from "lucide-react";
 import { BetFormModal } from "@/components/BetFormModal";
+import { motion } from "framer-motion";
+import { SwipeableItem } from "@/components/SwipeableItem";
 
 function resultBg(r: BetResult) {
   switch (r) {
@@ -147,7 +149,15 @@ export default function BetsFolderScreen({ folder, onBack }: Props) {
       )}
 
       {/* Bet list */}
-      <div className="px-4 space-y-2">
+      <motion.div
+        className="px-4 space-y-2"
+        drag="x"
+        dragConstraints={{ left: 0, right: 100 }}
+        dragElastic={0.2}
+        onDragEnd={(_, info) => {
+          if (info.offset.x > 80) onBack();
+        }}
+      >
         {filteredBets.length === 0 && (
           <div className="ios-card p-8 text-center">
             <p className="text-muted-foreground text-sm">
@@ -165,8 +175,8 @@ export default function BetsFolderScreen({ folder, onBack }: Props) {
             else setSelectedIds([...selectedIds, bet.id]);
           };
 
-          return (
-            <div key={bet.id}
+          const itemContent = (
+            <div
               className={`ios-card p-3 flex items-center gap-3 active:scale-[0.98] transition-transform cursor-pointer border-2 ${isSelected ? 'border-primary' : 'border-transparent'}`}
               onClick={() => {
                 if (isSelectMode) toggleSelect();
@@ -212,8 +222,16 @@ export default function BetsFolderScreen({ folder, onBack }: Props) {
               </div>
             </div>
           );
+
+          if (isSelectMode) return <div key={bet.id}>{itemContent}</div>;
+
+          return (
+            <SwipeableItem key={bet.id} onDelete={() => deleteBet(bet.id)}>
+              {itemContent}
+            </SwipeableItem>
+          );
         })}
-      </div>
+      </motion.div>
 
       {/* Add buttons or selection action */}
       {isSelectMode ? (

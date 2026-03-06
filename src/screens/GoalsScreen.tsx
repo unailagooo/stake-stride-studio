@@ -1,8 +1,9 @@
-import { useState } from "react";
-import { useApp } from "@/context/AppContext";
-import { Goal, GoalTerm } from "@/types/models";
 import { Plus, X, Trash2, Target, CheckCircle2, Circle, Clock } from "lucide-react";
-import { Milestone } from "@/types/models";
+import { Goal, GoalTerm, Milestone } from "@/types/models";
+import { SwipeableItem } from "@/components/SwipeableItem";
+import { motion } from "framer-motion";
+import { useApp } from "@/context/AppContext";
+import { useState } from "react";
 
 const TERMS: GoalTerm[] = ["Corto", "Medio", "Largo"];
 const TERM_LABELS: Record<GoalTerm, string> = { Corto: "Corto Plazo", Medio: "Medio Plazo", Largo: "Largo Plazo" };
@@ -30,37 +31,39 @@ export default function GoalsScreen() {
               <p className="text-xs text-muted-foreground font-medium mb-2">{TERM_LABELS[term]}</p>
               <div className="grid grid-cols-2 gap-2">
                 {termGoals.map(goal => {
-                  const daysLeft = goal.fechaObjetivo
-                    ? Math.ceil((new Date(goal.fechaObjetivo).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24))
-                    : null;
+                  const today = new Date();
+                  const targetDate = goal.fechaObjetivo ? new Date(goal.fechaObjetivo) : null;
+                  const daysLeft = targetDate ? Math.ceil((targetDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24)) : null;
 
                   return (
-                    <button key={goal.id} onClick={() => setDetail(goal)}
-                      className="ios-card p-3 text-left active:scale-[0.97] transition-transform relative overflow-hidden">
-                      <div className="flex items-center justify-between mb-2">
-                        <div className="flex items-center gap-2 max-w-[70%]">
-                          <Target className="w-4 h-4 text-primary shrink-0" />
-                          <p className="text-sm font-semibold text-foreground truncate">{goal.objetivo}</p>
-                        </div>
-                        {daysLeft !== null && (
-                          <div className={`flex items-center gap-1 px-1.5 py-0.5 rounded-full text-[9px] font-bold ${daysLeft < 0 ? 'bg-destructive/10 text-destructive' : 'bg-primary/10 text-primary'}`}>
-                            <Clock className="w-2.5 h-2.5" />
-                            {daysLeft < 0 ? 'Expirado' : `${daysLeft}d`}
+                    <SwipeableItem key={goal.id} onDelete={() => deleteGoal(goal.id)}>
+                      <button onClick={() => setDetail(goal)}
+                        className="ios-card p-3 text-left active:scale-[0.97] transition-transform relative overflow-hidden w-full h-full">
+                        <div className="flex items-center justify-between mb-2">
+                          <div className="flex items-center gap-2 max-w-[70%]">
+                            <Target className="w-4 h-4 text-primary shrink-0" />
+                            <p className="text-sm font-semibold text-foreground truncate">{goal.objetivo}</p>
                           </div>
-                        )}
-                      </div>
-                      <div className="w-full h-2 bg-muted rounded-full overflow-hidden">
-                        <div className="h-full bg-primary rounded-full transition-all" style={{ width: `${goal.progreso}%` }} />
-                      </div>
-                      <div className="flex justify-between items-center mt-1">
-                        <p className="text-[10px] text-muted-foreground">{goal.progreso}%</p>
-                        {goal.hitos && goal.hitos.length > 0 && (
-                          <p className="text-[9px] text-muted-foreground font-medium">
-                            {goal.hitos.filter(h => h.completado).length}/{goal.hitos.length} hitos
-                          </p>
-                        )}
-                      </div>
-                    </button>
+                          {daysLeft !== null && (
+                            <div className={`flex items-center gap-1 px-1.5 py-0.5 rounded-full text-[9px] font-bold ${daysLeft < 0 ? 'bg-destructive/10 text-destructive' : 'bg-primary/10 text-primary'}`}>
+                              <Clock className="w-2.5 h-2.5" />
+                              {daysLeft < 0 ? 'Expirado' : `${daysLeft}d`}
+                            </div>
+                          )}
+                        </div>
+                        <div className="w-full h-2 bg-muted rounded-full overflow-hidden">
+                          <div className="h-full bg-primary rounded-full transition-all" style={{ width: `${goal.progreso}%` }} />
+                        </div>
+                        <div className="flex justify-between items-center mt-1">
+                          <p className="text-[10px] text-muted-foreground">{goal.progreso}%</p>
+                          {goal.hitos && goal.hitos.length > 0 && (
+                            <p className="text-[9px] text-muted-foreground font-medium">
+                              {goal.hitos.filter(h => h.completado).length}/{goal.hitos.length} hitos
+                            </p>
+                          )}
+                        </div>
+                      </button>
+                    </SwipeableItem>
                   );
                 })}
               </div>
@@ -78,7 +81,15 @@ export default function GoalsScreen() {
       {/* Detail modal */}
       {detail && (
         <div className="fixed inset-0 z-50 flex items-end justify-center bg-foreground/30 animate-fade-in" onClick={() => setDetail(null)}>
-          <div className="bg-card w-full max-w-lg rounded-t-2xl p-5 pb-12 animate-slide-up safe-bottom" onClick={e => e.stopPropagation()}>
+          <motion.div
+            drag="y"
+            dragConstraints={{ top: 0 }}
+            dragElastic={0.2}
+            onDragEnd={(_, info) => {
+              if (info.offset.y > 100) setDetail(null);
+            }}
+            className="bg-card w-full max-w-lg rounded-t-2xl p-5 pb-12 animate-slide-up safe-bottom" onClick={e => e.stopPropagation()}>
+            <div className="w-12 h-1.5 bg-muted rounded-full mx-auto mb-4 opacity-40 shrink-0" />
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-lg font-bold text-foreground">{detail.objetivo}</h2>
               <div className="flex gap-2">
@@ -134,7 +145,7 @@ export default function GoalsScreen() {
                 )}
               </div>
             </div>
-          </div>
+          </motion.div>
         </div>
       )}
 
@@ -175,7 +186,15 @@ function GoalForm({ onClose }: { onClose: () => void }) {
 
   return (
     <div className="fixed inset-0 z-50 flex items-end justify-center bg-foreground/30 animate-fade-in" onClick={onClose}>
-      <div className="bg-card w-full max-w-lg rounded-t-2xl p-5 pb-12 animate-slide-up safe-bottom max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
+      <motion.div
+        drag="y"
+        dragConstraints={{ top: 0 }}
+        dragElastic={0.2}
+        onDragEnd={(_, info) => {
+          if (info.offset.y > 100) onClose();
+        }}
+        className="bg-card w-full max-w-lg rounded-t-2xl p-5 pb-12 animate-slide-up safe-bottom max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
+        <div className="w-12 h-1.5 bg-muted rounded-full mx-auto mb-4 opacity-40 shrink-0" />
         <div className="flex items-center justify-between mb-4">
           <h2 className="text-lg font-bold text-foreground">Nuevo Objetivo</h2>
           <button onClick={onClose} className="w-8 h-8 rounded-full bg-muted flex items-center justify-center">
@@ -233,7 +252,7 @@ function GoalForm({ onClose }: { onClose: () => void }) {
             Crear Objetivo
           </button>
         </div>
-      </div>
+      </motion.div>
     </div>
   );
 }

@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useApp } from "@/context/AppContext";
 import { Bet, BetLeg, BetResult } from "@/types/models";
 import { X, Trash2, Plus, Minus } from "lucide-react";
+import { motion } from "framer-motion";
 
 interface Props {
   bet: Bet | null;
@@ -49,12 +50,17 @@ export function BetFormModal({ bet, folderId, betType, hasStake, onClose, onDele
     const newLegs = legs.map(l => l.id === id ? { ...l, [field]: value } : l);
     setLegs(newLegs);
 
-    // Auto-calculate combined cuota
+    // Auto-calculate combined cuota only if it's currently 0 or near 0 (initial state)
+    // or if we are editing a leg and the user hasn't manually set a cuota yet.
     if (type === "combined") {
       const valid = newLegs.filter(l => l.cuota > 0);
       if (valid.length > 0) {
         const total = valid.reduce((acc, l) => acc * l.cuota, 1);
-        setCuota(total.toFixed(2));
+        // We only overwrite if cuota is empty or matches previous calculation
+        const currentTotal = legs.filter(l => l.cuota > 0).reduce((acc, l) => acc * l.cuota, 1);
+        if (!cuota || parseFloat(cuota) === currentTotal || cuota === "0" || cuota === "0.00") {
+          setCuota(total.toFixed(2));
+        }
       }
     }
   };
@@ -98,7 +104,15 @@ export function BetFormModal({ bet, folderId, betType, hasStake, onClose, onDele
 
   return (
     <div className="fixed inset-0 z-50 flex items-end justify-center bg-foreground/30 animate-fade-in" onClick={onClose}>
-      <div className="bg-card w-full max-w-lg rounded-t-2xl p-5 pb-12 animate-slide-up safe-bottom max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
+      <motion.div
+        drag="y"
+        dragConstraints={{ top: 0 }}
+        dragElastic={0.2}
+        onDragEnd={(_, info) => {
+          if (info.offset.y > 100) onClose();
+        }}
+        className="bg-card w-full max-w-lg rounded-t-2xl p-5 pb-12 animate-slide-up safe-bottom max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
+        <div className="w-12 h-1.5 bg-muted rounded-full mx-auto mb-4 opacity-40 shrink-0" />
         <div className="flex items-center justify-between mb-4">
           <h2 className="text-lg font-bold text-foreground">
             {isEdit ? "Editar" : "Nueva"} {type === "combined" ? "Combinada" : "Apuesta"}
@@ -261,7 +275,7 @@ export function BetFormModal({ bet, folderId, betType, hasStake, onClose, onDele
             {isEdit ? "Guardar Cambios" : type === "combined" ? "Añadir Combinada" : "Añadir Apuesta"}
           </button>
         </div>
-      </div>
+      </motion.div>
     </div>
   );
 }

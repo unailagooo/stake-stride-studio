@@ -1,7 +1,9 @@
 import { useState } from "react";
 import { useApp } from "@/context/AppContext";
-import { Task, TaskPriority, Subtask, TaskRecurrence } from "@/types/models";
 import { Plus, X, Trash2, Circle, CheckCircle2, ListTodo, Repeat } from "lucide-react";
+import { SwipeableItem } from "@/components/SwipeableItem";
+import { motion } from "framer-motion";
+import { Subtask, Task, TaskPriority, TaskRecurrence } from "@/types/models";
 
 const PRIORITY_STYLES: Record<TaskPriority, string> = {
   Alta: "bg-destructive/10 text-destructive",
@@ -154,60 +156,59 @@ export default function TasksScreen() {
           const hasDate = !!task.fechaLimite;
 
           return (
-            <div key={task.id} className="ios-card p-3 space-y-3">
-              <div className="flex items-center gap-3">
-                <button onClick={() => toggle(task)} className="flex-shrink-0">
-                  <Circle className="w-5 h-5 text-muted-foreground" />
-                </button>
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-1.5">
-                    <ListTodo className="w-3 h-3 text-primary-foreground/40" />
-                    <p className="text-sm font-medium text-foreground truncate">{task.tarea}</p>
+            <SwipeableItem key={task.id} onDelete={() => deleteTask(task.id)}>
+              <div className="ios-card p-3 space-y-3">
+                <div className="flex items-center gap-3">
+                  <button onClick={() => toggle(task)} className="flex-shrink-0">
+                    <Circle className="w-5 h-5 text-muted-foreground" />
+                  </button>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-1.5">
+                      <ListTodo className="w-3 h-3 text-primary-foreground/40" />
+                      <p className="text-sm font-medium text-foreground truncate">{task.tarea}</p>
+                    </div>
+                    <div className="flex items-center gap-2 mt-0.5">
+                      <span className="text-[9px] font-bold uppercase tracking-wider text-primary/70">{task.categoria}</span>
+                      {hasDate && (
+                        <p className={`text-[10px] font-medium ${task.fechaLimite && new Date(task.fechaLimite).getTime() < new Date().setHours(0, 0, 0, 0) ? 'text-destructive' : 'text-muted-foreground'}`}>
+                          {new Date(task.fechaLimite!).toLocaleDateString("es-ES", { day: "numeric", month: "short" })}
+                          {task.hora && ` • ${task.hora}`}
+                        </p>
+                      )}
+                      {task.recurrencia && task.recurrencia.type !== "Ninguna" && (
+                        <div className="flex items-center gap-1 text-[10px] text-primary font-medium">
+                          <Repeat className="w-2.5 h-2.5" />
+                          {task.recurrencia.type === "Personalizada" ? "Pers." : task.recurrencia.type}
+                        </div>
+                      )}
+                    </div>
                   </div>
-                  <div className="flex items-center gap-2 mt-0.5">
-                    <span className="text-[9px] font-bold uppercase tracking-wider text-primary/70">{task.categoria}</span>
-                    {hasDate && (
-                      <p className={`text-[10px] font-medium ${task.fechaLimite && new Date(task.fechaLimite).getTime() < new Date().setHours(0, 0, 0, 0) ? 'text-destructive' : 'text-muted-foreground'}`}>
-                        {new Date(task.fechaLimite!).toLocaleDateString("es-ES", { day: "numeric", month: "short" })}
-                        {task.hora && ` • ${task.hora}`}
-                      </p>
-                    )}
-                    {task.recurrencia && task.recurrencia.type !== "Ninguna" && (
-                      <div className="flex items-center gap-1 text-[10px] text-primary font-medium">
-                        <Repeat className="w-2.5 h-2.5" />
-                        {task.recurrencia.type === "Personalizada" ? "Pers." : task.recurrencia.type}
-                      </div>
-                    )}
+                  <div className="flex items-center gap-2">
+                    <div className={`w-2 h-2 rounded-full ${PRIORITY_DOT[task.prioridad]}`} />
+                    <span className={`text-[10px] px-2 py-0.5 rounded-full font-medium ${PRIORITY_STYLES[task.prioridad]}`}>
+                      {task.prioridad}
+                    </span>
                   </div>
                 </div>
-                <div className="flex items-center gap-2">
-                  <div className={`w-2 h-2 rounded-full ${PRIORITY_DOT[task.prioridad]}`} />
-                  <span className={`text-[10px] px-2 py-0.5 rounded-full font-medium ${PRIORITY_STYLES[task.prioridad]}`}>
-                    {task.prioridad}
-                  </span>
-                </div>
-                <button onClick={() => deleteTask(task.id)} className="flex-shrink-0 opacity-40">
-                  <Trash2 className="w-3.5 h-3.5 text-muted-foreground" />
-                </button>
-              </div>
 
-              {totalSubs > 0 && (
-                <div className="pl-8 space-y-1.5">
-                  <div className="flex items-center justify-between mb-1">
-                    <p className="text-[10px] text-muted-foreground font-bold uppercase tracking-wider">Subtareas ({doneSubs}/{totalSubs})</p>
-                    <div className="w-20 h-1 bg-muted rounded-full">
-                      <div className="h-full bg-primary rounded-full transition-all" style={{ width: `${(doneSubs / totalSubs) * 100}%` }} />
+                {totalSubs > 0 && (
+                  <div className="pl-8 space-y-1.5">
+                    <div className="flex items-center justify-between mb-1">
+                      <p className="text-[10px] text-muted-foreground font-bold uppercase tracking-wider">Subtareas ({doneSubs}/{totalSubs})</p>
+                      <div className="w-20 h-1 bg-muted rounded-full">
+                        <div className="h-full bg-primary rounded-full transition-all" style={{ width: `${(doneSubs / totalSubs) * 100}%` }} />
+                      </div>
                     </div>
+                    {task.subtareas?.map(sub => (
+                      <div key={sub.id} className="flex items-center gap-2 cursor-pointer" onClick={() => toggleSubtask(task, sub.id)}>
+                        {sub.completada ? <CheckCircle2 className="w-3.5 h-3.5 text-success" /> : <Circle className="w-3.5 h-3.5 text-muted-foreground/40" />}
+                        <span className={`text-xs ${sub.completada ? 'text-muted-foreground line-through' : 'text-foreground'}`}>{sub.texto}</span>
+                      </div>
+                    ))}
                   </div>
-                  {task.subtareas?.map(sub => (
-                    <div key={sub.id} className="flex items-center gap-2 cursor-pointer" onClick={() => toggleSubtask(task, sub.id)}>
-                      {sub.completada ? <CheckCircle2 className="w-3.5 h-3.5 text-success" /> : <Circle className="w-3.5 h-3.5 text-muted-foreground/40" />}
-                      <span className={`text-xs ${sub.completada ? 'text-muted-foreground line-through' : 'text-foreground'}`}>{sub.texto}</span>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
+                )}
+              </div>
+            </SwipeableItem>
           );
         })}
 
@@ -215,15 +216,14 @@ export default function TasksScreen() {
           <>
             <p className="text-xs text-muted-foreground pt-3 pb-1 font-medium">Completadas ({doneTasks.length})</p>
             {doneTasks.map(task => (
-              <div key={task.id} className="ios-card p-3 flex items-center gap-3 opacity-60">
-                <button onClick={() => toggle(task)} className="flex-shrink-0">
-                  <CheckCircle2 className="w-5 h-5 text-success" />
-                </button>
-                <p className="text-sm text-muted-foreground line-through flex-1">{task.tarea}</p>
-                <button onClick={() => deleteTask(task.id)} className="flex-shrink-0 opacity-40">
-                  <Trash2 className="w-3.5 h-3.5 text-muted-foreground" />
-                </button>
-              </div>
+              <SwipeableItem key={task.id} onDelete={() => deleteTask(task.id)}>
+                <div className="ios-card p-3 flex items-center gap-3 opacity-60">
+                  <button onClick={() => toggle(task)} className="flex-shrink-0">
+                    <CheckCircle2 className="w-5 h-5 text-success" />
+                  </button>
+                  <p className="text-sm text-muted-foreground line-through flex-1">{task.tarea}</p>
+                </div>
+              </SwipeableItem>
             ))}
           </>
         )}
@@ -231,7 +231,15 @@ export default function TasksScreen() {
 
       {showForm && (
         <div className="fixed inset-0 z-50 flex items-end justify-center bg-foreground/30 animate-fade-in" onClick={() => setShowForm(false)}>
-          <div className="bg-card w-full max-w-lg rounded-t-2xl p-5 pb-10 animate-slide-up safe-bottom shadow-[0_-8px_30px_rgb(0,0,0,0.12)]" onClick={e => e.stopPropagation()}>
+          <motion.div
+            drag="y"
+            dragConstraints={{ top: 0 }}
+            dragElastic={0.2}
+            onDragEnd={(_, info) => {
+              if (info.offset.y > 100) setShowForm(false);
+            }}
+            className="bg-card w-full max-w-lg rounded-t-2xl p-5 pb-10 animate-slide-up safe-bottom shadow-[0_-8px_30px_rgb(0,0,0,0.12)]" onClick={e => e.stopPropagation()}>
+            <div className="w-12 h-1.5 bg-muted rounded-full mx-auto mb-4 opacity-40 shrink-0" />
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-lg font-bold text-foreground">Nueva Tarea</h2>
               <button onClick={() => setShowForm(false)} className="w-8 h-8 rounded-full bg-muted flex items-center justify-center">
@@ -343,7 +351,7 @@ export default function TasksScreen() {
                 Crear Tarea
               </button>
             </div>
-          </div>
+          </motion.div>
         </div>
       )}
 
